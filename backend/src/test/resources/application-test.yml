@@ -1,0 +1,29 @@
+# Test profile — replaces PostgreSQL with H2 in-memory for all @SpringBootTest tests.
+# Activated via @ActiveProfiles("test") on integration test classes.
+# Pure unit tests (Mockito-only) don't use this profile at all.
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      # Re-create the schema before each test run and drop it after
+      ddl-auto: create-drop
+    show-sql: false
+  h2:
+    console:
+      enabled: false
+
+# Short-lived test token — no need for a full 24-hour expiry in tests
+jwt:
+  secret: test-secret-key-for-unit-tests-only-must-be-at-least-256-bits-long-padded
+  expiration-ms: 3600000
+
+logging:
+  level:
+    com.learningplatform: WARN
+    org.springframework.security: WARN

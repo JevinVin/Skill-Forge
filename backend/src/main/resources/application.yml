@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: learning-platform-backend
+
+  # ── PostgreSQL datasource ────────────────────────────────────────────
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/learningplatform}
+    username: ${DB_USERNAME:lpuser}
+    password: ${DB_PASSWORD:lppassword}
+    driver-class-name: org.postgresql.Driver
+
+  # ── JPA / Hibernate ─────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      # 'update' creates/alters tables automatically — fine for dev.
+      # Switch to 'validate' or use Flyway/Liquibase before production.
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+# ── Server ──────────────────────────────────────────────────────────────
+server:
+  port: ${SERVER_PORT:8080}
+
+# ── JWT ─────────────────────────────────────────────────────────────────
+# jwt.secret MUST be overridden in production via the JWT_SECRET env var.
+# The default value here is for local development ONLY.
+jwt:
+  secret: ${JWT_SECRET:dev-only-secret-replace-in-prod-must-be-256-bit-key-padded}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}   # 24 hours
+
+# ── Logging ─────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.learningplatform: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
