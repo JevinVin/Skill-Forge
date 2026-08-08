@@ -157,15 +157,16 @@ const CourseDetailPage = () => {
     }
   };
 
-  // Automatically mark PDF and TEXT lessons as completed when viewed
+  // Automatically mark ALL viewed lessons (PDF, Video, or Text) as completed
   useEffect(() => {
     if (activeLessonId) {
       const current = course?.modules?.flatMap((m) => m.lessons || []).find((l) => l.id === activeLessonId);
-      if (current && (current.lessonType === 'PDF' || current.lessonType === 'TEXT')) {
+      if (current) {
         handleAutoCompleteLesson(current.id);
       }
     }
   }, [activeLessonId]);
+
 
 
   const handleCreateModuleSubmit = async (e) => {
@@ -199,29 +200,16 @@ const CourseDetailPage = () => {
 
     setIsSubmittingLesson(true);
     try {
-      let finalMediaUrl = null;
-      let finalVideoType = null;
-
-      if (lessonType === 'VIDEO' && videoInputType === 'YOUTUBE') {
-        if (!youtubeUrl.trim()) {
-          setLessonError('YouTube URL is required for YouTube video lessons');
-          setIsSubmittingLesson(false);
-          return;
-        }
-        finalMediaUrl = youtubeUrl.trim();
-        finalVideoType = 'YOUTUBE';
-      }
-
       const newLesson = await addLesson(activeLessonModalModuleId, {
         title: lessonTitle.trim(),
         content: lessonContent.trim(),
         lessonType,
-        mediaUrl: finalMediaUrl,
-        videoType: finalVideoType,
+        mediaUrl: null,
+        videoType: lessonType === 'VIDEO' ? 'LOCAL' : null,
       });
 
       // Upload local PDF or Video file if attached
-      if (mediaFile && (lessonType === 'PDF' || (lessonType === 'VIDEO' && videoInputType === 'FILE'))) {
+      if (mediaFile && (lessonType === 'PDF' || lessonType === 'VIDEO')) {
         await uploadLessonMedia(newLesson.id, mediaFile, lessonType);
       }
 
@@ -230,8 +218,8 @@ const CourseDetailPage = () => {
       setLessonTitle('');
       setLessonContent('');
       setLessonType('TEXT');
-      setYoutubeUrl('');
       setMediaFile(null);
+
     } catch (err) {
       setLessonError(err.response?.data?.error || err.response?.data?.message || 'Failed to add lesson.');
     } finally {
@@ -708,40 +696,24 @@ const CourseDetailPage = () => {
                   >
                     <option value="TEXT">📝 Text / Markdown Website Content</option>
                     <option value="PDF">📄 PDF Document (Inline Viewer)</option>
-                    <option value="VIDEO">🎥 Video Lesson (YouTube or Local File)</option>
+                    <option value="VIDEO">🎥 Video Lesson (Local File Upload)</option>
                   </select>
                 </div>
 
                 {lessonType === 'VIDEO' && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                      Video Source
+                      Upload Local Video File (MP4, WebM, MOV)
                     </label>
-                    <select
-                      value={videoInputType}
-                      onChange={(e) => setVideoInputType(e.target.value)}
-                      style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', marginBottom: '10px' }}
-                    >
-                      <option value="YOUTUBE">▶ YouTube Video Link</option>
-                      <option value="FILE">📁 Local MP4 / WebM File Upload</option>
-                    </select>
-
-                    {videoInputType === 'YOUTUBE' ? (
-                      <Input
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        value={youtubeUrl}
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
-                      />
-                    ) : (
-                      <input
-                        type="file"
-                        accept="video/mp4, video/webm"
-                        onChange={(e) => setMediaFile(e.target.files[0])}
-                        style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}
-                      />
-                    )}
+                    <input
+                      type="file"
+                      accept="video/mp4, video/webm, video/quicktime"
+                      onChange={(e) => setMediaFile(e.target.files[0])}
+                      style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                    />
                   </div>
                 )}
+
 
                 {lessonType === 'PDF' && (
                   <div>
