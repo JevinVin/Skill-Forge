@@ -1,13 +1,13 @@
 import React from 'react';
 
 /**
- * VideoPlayer component — handles responsive YouTube video embeds and HTML5 local video uploads.
- * Triggers onVideoEnded when video playback reaches 100% completion.
+ * VideoPlayer component — renders YouTube embeds (with modest branding preventing navigation to YouTube)
+ * and HTML5 local video uploads natively on the webpage.
  */
 const VideoPlayer = ({ videoUrl, videoType, title, onVideoEnded }) => {
   if (!videoUrl) return null;
 
-  // Transform standard YouTube watch URL to embed format with JS API enabled
+  // Transform YouTube URL into clean embedded format without external YouTube links
   const getEmbedUrl = (url) => {
     if (!url) return '';
     let embed = url;
@@ -18,7 +18,10 @@ const VideoPlayer = ({ videoUrl, videoType, title, onVideoEnded }) => {
       const videoId = url.split('youtu.be/')[1]?.split('?')[0];
       embed = `https://www.youtube.com/embed/${videoId}`;
     }
-    return embed.includes('?') ? `${embed}&enablejsapi=1` : `${embed}?enablejsapi=1`;
+    
+    // Add parameters modestbranding=1, rel=0, iv_load_policy=3 to keep playback inside website
+    const separator = embed.includes('?') ? '&' : '?';
+    return `${embed}${separator}modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1`;
   };
 
   const isYouTube = videoType === 'YOUTUBE' || videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
