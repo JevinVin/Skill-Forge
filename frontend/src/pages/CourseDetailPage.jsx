@@ -6,7 +6,9 @@ import VideoPlayer from '../components/course/VideoPlayer';
 import ModuleQuizModal from '../components/course/ModuleQuizModal';
 import CertificateModal from '../components/course/CertificateModal';
 import AiTutorWidget from '../components/ai/AiTutorWidget';
+import CodePlayground from '../components/playground/CodePlayground';
 import { fetchCourseById, deleteCourse, addModule, addLesson, uploadLessonMedia } from '../api/courseApi';
+
 
 import { markLessonComplete, fetchDashboardStats, fetchCertificate, fetchCourseProgressDetails } from '../api/progressApi';
 
@@ -365,6 +367,22 @@ const CourseDetailPage = () => {
                 >
                   Study Notes
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('playground')}
+                  style={{
+                    padding: '10px 4px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: activeTab === 'playground' ? 'var(--accent-light)' : 'var(--text-secondary)',
+                    fontWeight: activeTab === 'playground' ? 700 : 500,
+                    fontSize: '0.95rem',
+                    borderBottom: activeTab === 'playground' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  💻 Code Playground
+                </button>
               </div>
 
               {/* Tab Content */}
@@ -380,11 +398,11 @@ const CourseDetailPage = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', backgroundColor: 'var(--bg-tertiary)', padding: '16px', borderRadius: 'var(--radius-md)' }}>
                     <div>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Skill Level</span>
-                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>All Levels</strong>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{course.level || 'All Levels'}</strong>
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Total Modules</span>
-                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{course.modules?.length || 0} Modules</strong>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Category</span>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{course.category || 'General'}</strong>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Certification</span>
@@ -403,6 +421,10 @@ const CourseDetailPage = () => {
                     Take notes while studying. Use the quiz engine to test your recall!
                   </p>
                 </Card>
+              )}
+
+              {activeTab === 'playground' && (
+                <CodePlayground />
               )}
             </div>
 
