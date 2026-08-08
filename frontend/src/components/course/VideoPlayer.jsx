@@ -2,23 +2,23 @@ import React from 'react';
 
 /**
  * VideoPlayer component — handles responsive YouTube video embeds and HTML5 local video uploads.
+ * Triggers onVideoEnded when video playback reaches 100% completion.
  */
-const VideoPlayer = ({ videoUrl, videoType, title }) => {
+const VideoPlayer = ({ videoUrl, videoType, title, onVideoEnded }) => {
   if (!videoUrl) return null;
 
-  // Transform standard YouTube watch URL (youtube.com/watch?v=XYZ) to embed format (youtube.com/embed/XYZ)
+  // Transform standard YouTube watch URL to embed format with JS API enabled
   const getEmbedUrl = (url) => {
     if (!url) return '';
-    if (url.includes('youtube.com/embed/')) return url;
+    let embed = url;
     if (url.includes('youtube.com/watch')) {
       const videoId = new URLSearchParams(new URL(url).search).get('v');
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-    if (url.includes('youtu.be/')) {
+      embed = `https://www.youtube.com/embed/${videoId}`;
+    } else if (url.includes('youtu.be/')) {
       const videoId = url.split('youtu.be/')[1]?.split('?')[0];
-      return `https://www.youtube.com/embed/${videoId}`;
+      embed = `https://www.youtube.com/embed/${videoId}`;
     }
-    return url;
+    return embed.includes('?') ? `${embed}&enablejsapi=1` : `${embed}?enablejsapi=1`;
   };
 
   const isYouTube = videoType === 'YOUTUBE' || videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
@@ -53,6 +53,9 @@ const VideoPlayer = ({ videoUrl, videoType, title }) => {
         <video
           controls
           controlsList="nodownload"
+          onEnded={() => {
+            if (onVideoEnded) onVideoEnded();
+          }}
           style={{ width: '100%', maxHeight: '500px', display: 'block' }}
         >
           <source src={videoUrl} type="video/mp4" />

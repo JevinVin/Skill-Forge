@@ -122,6 +122,16 @@ const CourseDetailPage = () => {
     )
   );
 
+  const handleAutoCompleteLesson = async (lessonId) => {
+    if (!lessonId || completedLessonIds.has(lessonId)) return;
+    try {
+      await markLessonComplete(id, lessonId);
+      setCompletedLessonIds((prev) => new Set([...prev, lessonId]));
+    } catch (e) {
+      setCompletedLessonIds((prev) => new Set([...prev, lessonId]));
+    }
+  };
+
   const toggleLessonComplete = async (lessonId) => {
     try {
       await markLessonComplete(id, lessonId);
@@ -135,9 +145,28 @@ const CourseDetailPage = () => {
         return next;
       });
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update lesson completion status');
+      setCompletedLessonIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(lessonId)) {
+          next.delete(lessonId);
+        } else {
+          next.add(lessonId);
+        }
+        return next;
+      });
     }
   };
+
+  // Automatically mark PDF and TEXT lessons as completed when viewed
+  useEffect(() => {
+    if (activeLessonId) {
+      const current = course?.modules?.flatMap((m) => m.lessons || []).find((l) => l.id === activeLessonId);
+      if (current && (current.lessonType === 'PDF' || current.lessonType === 'TEXT')) {
+        handleAutoCompleteLesson(current.id);
+      }
+    }
+  }, [activeLessonId]);
+
 
   const handleCreateModuleSubmit = async (e) => {
     e.preventDefault();
@@ -285,9 +314,11 @@ const CourseDetailPage = () => {
                           videoUrl={activeLesson.mediaUrl}
                           videoType={activeLesson.videoType}
                           title={activeLesson.title}
+                          onVideoEnded={() => handleAutoCompleteLesson(activeLesson.id)}
                         />
                       </div>
                     )}
+
 
                     {activeLesson.lessonType === 'PDF' && (
                       <div style={{ padding: '16px' }}>
@@ -537,30 +568,31 @@ const CourseDetailPage = () => {
                                   transition: 'all var(--transition-fast)',
                                 }}
                               >
-                                {/* LEFT-ALIGNED Radio-Style Completion Checkmark */}
-                                <div
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleLessonComplete(lesson.id);
-                                  }}
-                                  style={{
-                                    width: '20px',
-                                    height: '20px',
-                                    borderRadius: '50%',
-                                    border: isDone ? 'none' : '2px solid var(--text-muted)',
-                                    backgroundColor: isDone ? 'var(--accent-primary)' : 'transparent',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: '#ffffff',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {isDone && '✓'}
-                                </div>
+                                  {/* LEFT-ALIGNED Radio-Style Completion Checkmark */}
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleLessonComplete(lesson.id);
+                                    }}
+                                    style={{
+                                      width: '16px',
+                                      height: '16px',
+                                      borderRadius: '50%',
+                                      border: isDone ? 'none' : '2px solid var(--text-muted)',
+                                      backgroundColor: isDone ? 'var(--accent-primary)' : 'transparent',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: '#ffffff',
+                                      fontSize: '0.65rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {isDone && '✓'}
+                                  </div>
+
 
                                 {/* Lesson Title & Type Icon */}
                                 <div style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

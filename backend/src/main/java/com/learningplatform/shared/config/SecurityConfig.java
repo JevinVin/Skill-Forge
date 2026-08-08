@@ -74,14 +74,14 @@ public class SecurityConfig {
                         // Course reads — any authenticated user (STUDENT or INSTRUCTOR)
                         .requestMatchers(HttpMethod.GET, "/api/courses/**").authenticated()
 
-                        // Quiz submit — any authenticated user (students need to submit).
-                        // Must be declared BEFORE the broad INSTRUCTOR-only POST rule below,
-                        // because Spring Security evaluates rules in declaration order and
-                        // stops at the first match.
+                        // Lesson completion & Quiz submit — any authenticated user (STUDENT or INSTRUCTOR).
+                        // Must be declared BEFORE the broad INSTRUCTOR-only POST rule below.
+                        .requestMatchers(HttpMethod.POST, "/api/courses/*/lessons/*/complete").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/courses/*/quiz/submit").authenticated()
 
                         // Course writes and quiz management — INSTRUCTOR only
                         .requestMatchers(HttpMethod.POST, "/api/courses/**").hasRole("INSTRUCTOR")
+
                         .requestMatchers(HttpMethod.PUT, "/api/courses/**").hasRole("INSTRUCTOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/courses/**").hasRole("INSTRUCTOR")
 
