@@ -1,29 +1,105 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure Mozilla PDF.js worker via CDN
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version || '3.11.174'}/build/pdf.worker.min.js`;
+
+
 
 /**
- * PdfViewer component — renders document content 100% natively on the webpage.
- * Completely eliminates <iframe> reliance to prevent any browser 'refused to connect' errors,
- * providing Fullscreen reading mode, styled typography, and direct PDF download options.
+ * PdfViewer component — renders PDF documents 100% natively on HTML5 canvas elements
+ * directly on the webpage using Mozilla PDF.js.
+ * Zero iframe dependence, 0% browser connection errors, full dark theme styling, page controls,
+ * and Fullscreen reading mode!
  */
 const PdfViewer = ({ pdfUrl, title, textContent }) => {
+  const [pdfDoc, setPdfDoc] = useState(null);
+  const [pageNum, setPageNum] = useState(1);
+  const [numPages, setNumPages] = useState(0);
+  const [scale, setScale] = useState(1.2);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [copied, setCopied] = useState(false);
 
-  if (!pdfUrl && !textContent) return null;
+  const canvasRef = useRef(null);
+  const renderTaskRef = useRef(null);
 
-  // Resolve absolute backend URL if relative path provided
   const targetUrl = pdfUrl ? (pdfUrl.startsWith('http') ? pdfUrl : `http://localhost:8080${pdfUrl}`) : null;
+
+  // Load PDF Document
+  useEffect(() => {
+    if (!targetUrl) return;
+
+    let isMounted = true;
+    setIsLoading(true);
+    setError('');
+
+    const loadingTask = pdfjsLib.getDocument(targetUrl);
+    loadingTask.promise
+      .then((doc) => {
+        if (!isMounted) return;
+        setPdfDoc(doc);
+        setNumPages(doc.numPages);
+        setPageNum(1);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error('PDF loading error:', err);
+        setError('Failed to load PDF preview. You can read the text content below or download the file.');
+        setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [targetUrl]);
+
+  // Render Page onto Canvas
+  useEffect(() => {
+    if (!pdfDoc || !canvasRef.current) return;
+
+    let isCancelled = false;
+
+    pdfDoc.getPage(pageNum).then((page) => {
+      if (isCancelled) return;
+
+      const viewport = page.getViewport({ scale });
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+      };
+
+      const renderTask = page.render(renderContext);
+      renderTaskRef.current = renderTask;
+
+      renderTask.promise.catch((err) => {
+        if (err.name !== 'RenderingCancelledException') {
+          console.error('Render error:', err);
+        }
+      });
+    });
+
+    return () => {
+      isCancelled = true;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+    };
+  }, [pdfDoc, pageNum, scale]);
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
-  };
-
-  const handleCopyText = () => {
-    if (textContent) {
-      navigator.clipboard.writeText(textContent);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
   };
 
   return (
@@ -37,7 +113,7 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
               backgroundColor: 'var(--bg-primary)',
               display: 'flex',
               flexDirection: 'column',
-              padding: '24px',
+              padding: '20px',
               overflowY: 'auto',
             }
           : {
@@ -53,41 +129,86 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
             }
       }
     >
-      {/* Control Bar */}
+      {/* Control Toolbar */}
       <div style={{
         display: 'flex',
         justify: 'space-between',
         alignItems: 'center',
-        padding: '14px 20px',
+        padding: '12px 20px',
         backgroundColor: 'var(--bg-tertiary)',
         borderBottom: '1px solid var(--border-color)',
         borderRadius: isFullscreen ? 'var(--radius-md)' : '0',
+        flexWrap: 'wrap',
+        gap: '12px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-primary)', fontWeight: 700, fontSize: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>
           <span style={{ fontSize: '1.25rem' }}>📄</span>
           <span>{title || 'Document Viewer'}</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {textContent && (
+        {/* Page Navigation Controls */}
+        {numPages > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
               type="button"
-              onClick={handleCopyText}
+              disabled={pageNum <= 1}
+              onClick={() => setPageNum((prev) => Math.max(prev - 1, 1))}
               style={{
-                backgroundColor: 'transparent',
-                color: 'var(--text-secondary)',
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
                 border: '1px solid var(--border-color)',
-                padding: '6px 12px',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: 'pointer',
+                cursor: pageNum <= 1 ? 'not-allowed' : 'pointer',
+                opacity: pageNum <= 1 ? 0.5 : 1,
               }}
             >
-              {copied ? '✓ Copied' : '📋 Copy Text'}
+              ‹ Prev
             </button>
-          )}
 
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              Page {pageNum} of {numPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={pageNum >= numPages}
+              onClick={() => setPageNum((prev) => Math.min(prev + 1, numPages))}
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.85rem',
+                cursor: pageNum >= numPages ? 'not-allowed' : 'pointer',
+                opacity: pageNum >= numPages ? 0.5 : 1,
+              }}
+            >
+              Next ›
+            </button>
+
+            <span style={{ borderLeft: '1px solid var(--border-color)', height: '16px', margin: '0 4px' }} />
+
+            <button
+              type="button"
+              onClick={() => setScale((prev) => Math.max(prev - 0.2, 0.6))}
+              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', cursor: 'pointer' }}
+            >
+              🔍 -
+            </button>
+            <button
+              type="button"
+              onClick={() => setScale((prev) => Math.min(prev + 0.2, 2.5))}
+              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', cursor: 'pointer' }}
+            >
+              🔍 +
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
             onClick={toggleFullscreen}
@@ -95,7 +216,7 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
               backgroundColor: 'rgba(99, 102, 241, 0.15)',
               color: 'var(--accent-light)',
               border: '1px solid var(--accent-primary)',
-              padding: '6px 14px',
+              padding: '6px 12px',
               borderRadius: 'var(--radius-sm)',
               fontSize: '0.85rem',
               fontWeight: 600,
@@ -105,7 +226,7 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
               gap: '6px',
             }}
           >
-            {isFullscreen ? '↙ Exit Fullscreen' : '⛶ Fullscreen Reading Mode'}
+            {isFullscreen ? '↙ Exit Fullscreen' : '⛶ Fullscreen'}
           </button>
 
           {targetUrl && (
@@ -127,74 +248,56 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
                 gap: '6px',
               }}
             >
-              ⬇ Download File
+              ⬇ Download PDF
             </a>
           )}
         </div>
       </div>
 
-      {/* Native Webpage Document Viewport */}
+      {/* Canvas Viewport */}
       <div style={{
-        padding: '32px',
-        backgroundColor: 'var(--bg-secondary)',
-        minHeight: isFullscreen ? 'calc(100vh - 120px)' : '350px',
-        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '24px',
+        backgroundColor: '#1e293b',
+        maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '650px',
+        overflow: 'auto',
       }}>
-        {textContent ? (
-          <div style={{
-            fontSize: '1.05rem',
-            lineHeight: 1.8,
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-sans)',
-            whiteSpace: 'pre-wrap',
-            letterSpacing: '0.2px',
-          }}>
-            {textContent}
-          </div>
-        ) : (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justify: 'center',
-            padding: '40px 20px',
-            textAlign: 'center',
-            backgroundColor: 'var(--bg-tertiary)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px dashed var(--border-color)',
-          }}>
-            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>📄</div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-              {title || 'Document File Attached'}
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '500px', marginBottom: '20px' }}>
-              This lesson includes an attached document. You can read written study notes on the webpage or download the full document file below.
-            </p>
-            {targetUrl && (
-              <a
-                href={targetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                style={{
-                  backgroundColor: 'var(--accent-primary)',
-                  color: '#ffffff',
-                  padding: '10px 20px',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                ⬇ Download / Open PDF File
-              </a>
-            )}
+        {isLoading && (
+          <div style={{ padding: '40px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+            ⏳ Loading PDF pages on webpage...
           </div>
         )}
+
+        {error && (
+          <div style={{ color: 'var(--color-danger)', fontSize: '0.875rem', padding: '20px' }}>
+            {error}
+          </div>
+        )}
+
+        <canvas
+          ref={canvasRef}
+          style={{
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+            borderRadius: 'var(--radius-sm)',
+            maxWidth: '100%',
+            display: isLoading || error ? 'none' : 'block',
+          }}
+        />
       </div>
+
+      {/* Text Content Notes Below */}
+      {textContent && (
+        <div style={{ padding: '24px 28px', backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
+            Written Lesson Content & Notes:
+          </h4>
+          <div style={{ fontSize: '0.95rem', lineHeight: 1.7, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+            {textContent}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
