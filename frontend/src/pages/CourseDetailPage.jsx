@@ -10,8 +10,9 @@ import { Card, Button, Input, LoadingSkeleton } from '../components/common';
 import { useAuth } from '../context/AuthContext';
 
 /**
- * Detailed Course view page — displays full course metadata, instructor actions,
- * rich lesson media rendering (PDFs, Videos, Text), per-module quizzes, and student completion indicators.
+ * Detailed Course view page — updated layout matching modern course portals:
+ * Primary content viewport on the left (Video / PDF / Text + Tabs & Metadata),
+ * Course Content / Curriculum Sidebar on the right with left-aligned radio completion checkmarks.
  */
 const CourseDetailPage = () => {
   const { id } = useParams();
@@ -25,6 +26,7 @@ const CourseDetailPage = () => {
   const [error, setError] = useState('');
   const [expandedModules, setExpandedModules] = useState({});
   const [activeLessonId, setActiveLessonId] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'notes', 'announcements'
 
   // Instructor action states
   const [isDeleting, setIsDeleting] = useState(false);
@@ -56,11 +58,7 @@ const CourseDetailPage = () => {
 
       try {
         const stats = await fetchDashboardStats();
-        // Extract completed lessons for this course
-        const completedSet = new Set();
-        if (stats?.enrolledCourses) {
-          // Store user progress state
-        }
+        // Load stats if available
       } catch (e) {
         // Ignore stats fetch error
       }
@@ -169,7 +167,7 @@ const CourseDetailPage = () => {
         videoType: finalVideoType,
       });
 
-      // If local file upload (PDF or MP4 video) was selected, upload media file
+      // Upload local PDF or Video file if attached
       if (mediaFile && (lessonType === 'PDF' || (lessonType === 'VIDEO' && videoInputType === 'FILE'))) {
         await uploadLessonMedia(newLesson.id, mediaFile, lessonType);
       }
@@ -191,25 +189,23 @@ const CourseDetailPage = () => {
   // Find currently active lesson object
   const activeLesson = course?.modules?.flatMap((m) => m.lessons || []).find((l) => l.id === activeLessonId);
 
+  // Compute total lessons count & completed count
+  const allLessons = course?.modules?.flatMap((m) => m.lessons || []) || [];
+  const totalLessonsCount = allLessons.length;
+  const completedLessonsCount = completedLessonIds.size;
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
       <Navbar />
 
-      <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 20px' }}>
-        {/* Breadcrumb Navigation */}
-        <div style={{ marginBottom: '20px' }}>
-          <Link to="/courses" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            ← Back to Courses
-          </Link>
-        </div>
-
+      <main style={{ maxWidth: '1350px', margin: '0 auto', padding: '24px 20px' }}>
         {error && (
           <div style={{
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
             border: '1px solid var(--color-danger)',
             borderRadius: 'var(--radius-md)',
             padding: '12px 16px',
-            marginBottom: '24px',
+            marginBottom: '20px',
             color: 'var(--color-danger)',
             fontSize: '0.9rem',
           }}>
@@ -228,238 +224,336 @@ const CourseDetailPage = () => {
             <h2 style={{ color: 'var(--text-primary)' }}>Course Not Found</h2>
           </Card>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            {/* Course Header Banner */}
-            <Card style={{ padding: '32px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
-                <div style={{ flex: 1, minWidth: '280px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-light)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Skillforge Course
-                  </span>
-                  <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '8px 0 12px 0' }}>
-                    {course.title}
-                  </h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '20px' }}>
-                    {course.description}
-                  </p>
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                    <span>👤 Instructor: <strong>{course.instructorName || 'Instructor'}</strong></span>
-                    <span>📚 {course.modules?.length || 0} Modules</span>
-                  </div>
-                </div>
+          /* Main 2-Column Portal Layout */
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '28px' }}>
+            {/* Left Column: Primary Content Viewport (~70% width) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Breadcrumb Navigation */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                <Link to="/courses" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Courses</Link>
+                <span>›</span>
+                <span style={{ color: 'var(--accent-light)', fontWeight: 600 }}>{course.title}</span>
+              </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '200px' }}>
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    onClick={() => navigate(`/courses/${id}/quiz`)}
-                    fullWidth
-                  >
-                    📝 Take Final Quiz
-                  </Button>
+              {/* Course Title & Key Metadata Header */}
+              <div>
+                <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.5px' }}>
+                  {activeLesson ? activeLesson.title : course.title}
+                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+                  <span>⭐ 4.8 Rating</span>
+                  <span>👥 {totalLessonsCount} Lessons</span>
+                  <span>👤 Instructor: <strong style={{ color: 'var(--text-primary)' }}>{course.instructorName || 'Skillforge Instructor'}</strong></span>
+                </div>
+              </div>
+
+              {/* Main Media Player / PDF / Text Viewport */}
+              <Card style={{ padding: '0', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                {!activeLesson ? (
+                  <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    Select a lesson from the curriculum sidebar to begin studying.
+                  </div>
+                ) : (
+                  <div>
+                    {activeLesson.lessonType === 'VIDEO' && (
+                      <div style={{ padding: '0' }}>
+                        <VideoPlayer
+                          videoUrl={activeLesson.mediaUrl}
+                          videoType={activeLesson.videoType}
+                          title={activeLesson.title}
+                        />
+                      </div>
+                    )}
+
+                    {activeLesson.lessonType === 'PDF' && (
+                      <div style={{ padding: '16px' }}>
+                        <PdfViewer
+                          pdfUrl={activeLesson.mediaUrl}
+                          title={activeLesson.title}
+                        />
+                      </div>
+                    )}
+
+                    {activeLesson.content && (
+                      <div style={{ padding: '24px 28px', color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                        {activeLesson.content}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+
+              {/* Tabs Bar: Overview | Notes | Announcements */}
+              <div style={{ borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '24px' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('overview')}
+                  style={{
+                    padding: '10px 4px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: activeTab === 'overview' ? 'var(--accent-light)' : 'var(--text-secondary)',
+                    fontWeight: activeTab === 'overview' ? 700 : 500,
+                    fontSize: '0.95rem',
+                    borderBottom: activeTab === 'overview' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Overview
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('notes')}
+                  style={{
+                    padding: '10px 4px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: activeTab === 'notes' ? 'var(--accent-light)' : 'var(--text-secondary)',
+                    fontWeight: activeTab === 'notes' ? 700 : 500,
+                    fontSize: '0.95rem',
+                    borderBottom: activeTab === 'notes' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Study Notes
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              {activeTab === 'overview' && (
+                <Card style={{ padding: '24px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
+                    Course Description
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '24px' }}>
+                    {course.description || 'Welcome to Skillforge! Master your skills step-by-step with structured modules, interactive lessons, and module quizzes.'}
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', backgroundColor: 'var(--bg-tertiary)', padding: '16px', borderRadius: 'var(--radius-md)' }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Skill Level</span>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>All Levels</strong>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Total Modules</span>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{course.modules?.length || 0} Modules</strong>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Certification</span>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--color-success)' }}>Available on Completion</strong>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {activeTab === 'notes' && (
+                <Card style={{ padding: '24px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
+                    Lesson Study Notes
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    Take notes while studying. Use the quiz engine to test your recall!
+                  </p>
+                </Card>
+              )}
+            </div>
+
+            {/* Right Column: Course Content / Curriculum Sidebar (~30% width) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Main Course Quiz Button */}
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate(`/courses/${id}/quiz`)}
+                fullWidth
+                style={{ py: '14px' }}
+              >
+                🏆 Take Final Course Quiz
+              </Button>
+
+              {/* Sidebar Header */}
+              <Card style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Course Content
+                    </h2>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      {completedLessonsCount} / {totalLessonsCount} Completed
+                    </span>
+                  </div>
 
                   {isOwner && (
                     <Button
-                      variant="danger"
+                      variant="secondary"
                       size="sm"
-                      isLoading={isDeleting}
-                      onClick={async () => {
-                        if (!window.confirm(`Are you sure you want to delete "${course.title}"?`)) return;
-                        setIsDeleting(true);
-                        try {
-                          await deleteCourse(id);
-                          navigate('/courses');
-                        } catch (err) {
-                          alert(err.response?.data?.error || 'Failed to delete course');
-                        } finally {
-                          setIsDeleting(false);
-                        }
-                      }}
+                      onClick={() => { setModuleError(''); setActiveModuleModal(true); }}
                     >
-                      Delete Course
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            {/* Main Course Content Viewport (Modules list on left, Lesson content on right) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
-              {/* Left Column: Modules & Lessons Accordion */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Course Curriculum
-                  </h2>
-                  {isOwner && (
-                    <Button variant="secondary" size="sm" onClick={() => { setModuleError(''); setShowModuleModal(true); }}>
                       + Add Module
                     </Button>
                   )}
                 </div>
 
-                {course.modules?.map((module, mIdx) => {
-                  const isCompleted = completedModuleIds.has(module.id);
-                  return (
-                    <Card key={module.id} style={{ padding: '16px', backgroundColor: 'var(--bg-secondary)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
-                          Module {mIdx + 1}: {module.title}
-                        </h3>
-
-                        {isCompleted && (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-success)', backgroundColor: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '12px' }}>
-                            Completed ✓
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Module Quiz Trigger */}
-                      <button
-                        type="button"
-                        onClick={() => setActiveModuleQuiz({ moduleId: module.id, title: module.title })}
+                {/* Modules Accordion List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {course.modules?.map((module, mIdx) => {
+                    const isCompleted = completedModuleIds.has(module.id);
+                    return (
+                      <div
+                        key={module.id}
                         style={{
-                          width: '100%',
-                          padding: '6px 10px',
-                          borderRadius: 'var(--radius-sm)',
-                          backgroundColor: 'rgba(99, 102, 241, 0.12)',
-                          border: '1px dashed var(--accent-primary)',
-                          color: 'var(--accent-light)',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          marginBottom: '12px',
+                          backgroundColor: 'var(--bg-secondary)',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-color)',
+                          overflow: 'hidden',
                         }}
                       >
-                        🎯 Take Module Quiz (100% Required)
-                      </button>
+                        {/* Module Accordion Header */}
+                        <div style={{ padding: '14px 16px', backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              Module {mIdx + 1}: {module.title}
+                            </h3>
+                            {isCompleted && (
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-success)', backgroundColor: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '12px' }}>
+                                Done ✓
+                              </span>
+                            )}
+                          </div>
 
-                      {/* Lesson list inside module */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {module.lessons?.map((lesson, lIdx) => {
-                          const isActive = lesson.id === activeLessonId;
-                          const isDone = completedLessonIds.has(lesson.id);
-
-                          return (
-                            <div
-                              key={lesson.id}
-                              onClick={() => setActiveLessonId(lesson.id)}
-                              style={{
-                                padding: '10px 12px',
-                                borderRadius: 'var(--radius-md)',
-                                backgroundColor: isActive ? 'rgba(99, 102, 241, 0.2)' : 'var(--bg-tertiary)',
-                                border: isActive ? '1px solid var(--accent-primary)' : '1px solid transparent',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                fontSize: '0.85rem',
-                                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                fontWeight: isActive ? 600 : 400,
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                                <span>
-                                  {lesson.lessonType === 'PDF' ? '📄' : lesson.lessonType === 'VIDEO' ? '🎥' : '📝'}
-                                </span>
-                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {lIdx + 1}. {lesson.title}
-                                </span>
-                              </div>
-
-                              <input
-                                type="checkbox"
-                                checked={isDone}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  toggleLessonComplete(lesson.id);
-                                }}
-                                style={{ accentColor: 'var(--color-success)', cursor: 'pointer' }}
-                              />
-                            </div>
-                          );
-                        })}
-
-                        {isOwner && (
+                          {/* Module Quiz Action */}
                           <button
                             type="button"
-                            onClick={() => {
-                              setLessonError('');
-                              setMediaFile(null);
-                              setActiveLessonModalModuleId(module.id);
-                            }}
+                            onClick={() => setActiveModuleQuiz({ moduleId: module.id, title: module.title })}
                             style={{
-                              backgroundColor: 'transparent',
-                              border: 'none',
+                              width: '100%',
+                              padding: '6px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                              border: '1px dashed var(--accent-primary)',
                               color: 'var(--accent-light)',
-                              fontSize: '0.8rem',
+                              fontSize: '0.78rem',
                               fontWeight: 600,
                               cursor: 'pointer',
-                              textAlign: 'left',
-                              padding: '6px 4px',
+                              textAlign: 'center',
                             }}
                           >
-                            + Add Lesson to Module
+                            🎯 Take Module Quiz (100% Required)
                           </button>
-                        )}
+                        </div>
+
+                        {/* Lessons List in Module */}
+                        <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {module.lessons?.map((lesson, lIdx) => {
+                            const isActive = lesson.id === activeLessonId;
+                            const isDone = completedLessonIds.has(lesson.id);
+
+                            return (
+                              <div
+                                key={lesson.id}
+                                onClick={() => setActiveLessonId(lesson.id)}
+                                style={{
+                                  padding: '10px 12px',
+                                  borderRadius: 'var(--radius-md)',
+                                  backgroundColor: isActive ? 'rgba(99, 102, 241, 0.18)' : 'transparent',
+                                  border: isActive ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px',
+                                  fontSize: '0.85rem',
+                                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                  fontWeight: isActive ? 600 : 400,
+                                  transition: 'all var(--transition-fast)',
+                                }}
+                              >
+                                {/* LEFT-ALIGNED Radio-Style Completion Checkmark */}
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleLessonComplete(lesson.id);
+                                  }}
+                                  style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    borderRadius: '50%',
+                                    border: isDone ? 'none' : '2px solid var(--text-muted)',
+                                    backgroundColor: isDone ? 'var(--accent-primary)' : 'transparent',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#ffffff',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isDone && '✓'}
+                                </div>
+
+                                {/* Lesson Title & Type Icon */}
+                                <div style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  <span style={{ marginRight: '6px' }}>
+                                    {lesson.lessonType === 'PDF' ? '📄' : lesson.lessonType === 'VIDEO' ? '🎥' : '📝'}
+                                  </span>
+                                  {lIdx + 1}. {lesson.title}
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {isOwner && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLessonError('');
+                                setMediaFile(null);
+                                setActiveLessonModalModuleId(module.id);
+                              }}
+                              style={{
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                color: 'var(--accent-light)',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                padding: '8px 12px',
+                              }}
+                            >
+                              + Add Lesson to Module
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </Card>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              </Card>
 
-              {/* Right Column: Active Lesson Viewport */}
-              <div>
-                {!activeLesson ? (
-                  <Card style={{ padding: '40px', textAlign: 'center' }}>
-                    <p style={{ color: 'var(--text-secondary)' }}>Select a lesson from the curriculum sidebar to begin studying.</p>
-                  </Card>
-                ) : (
-                  <Card style={{ padding: '28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', pb: '14px', pb: '14px' }}>
-                      <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {activeLesson.title}
-                      </h2>
-
-                      <Button
-                        variant={completedLessonIds.has(activeLesson.id) ? 'secondary' : 'primary'}
-                        size="sm"
-                        onClick={() => toggleLessonComplete(activeLesson.id)}
-                      >
-                        {completedLessonIds.has(activeLesson.id) ? '✓ Mark Incomplete' : '✓ Mark as Complete'}
-                      </Button>
-                    </div>
-
-                    {/* Lesson Content Body based on lessonType */}
-                    {activeLesson.lessonType === 'VIDEO' && (
-                      <VideoPlayer
-                        videoUrl={activeLesson.mediaUrl}
-                        videoType={activeLesson.videoType}
-                        title={activeLesson.title}
-                      />
-                    )}
-
-                    {activeLesson.lessonType === 'PDF' && (
-                      <PdfViewer
-                        pdfUrl={activeLesson.mediaUrl}
-                        title={activeLesson.title}
-                      />
-                    )}
-
-                    {activeLesson.content && (
-                      <div style={{
-                        fontSize: '0.95rem',
-                        lineHeight: 1.7,
-                        color: 'var(--text-primary)',
-                        whiteSpace: 'pre-wrap',
-                        marginTop: '16px',
-                      }}>
-                        {activeLesson.content}
-                      </div>
-                    )}
-                  </Card>
-                )}
-              </div>
+              {/* Instructor Delete Course Option */}
+              {isOwner && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  isLoading={isDeleting}
+                  onClick={async () => {
+                    if (!window.confirm(`Are you sure you want to delete "${course.title}"?`)) return;
+                    setIsDeleting(true);
+                    try {
+                      await deleteCourse(id);
+                      navigate('/courses');
+                    } catch (err) {
+                      alert(err.response?.data?.error || 'Failed to delete course');
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }}
+                >
+                  Delete Course
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -469,11 +563,11 @@ const CourseDetailPage = () => {
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
             <Card style={{ width: '100%', maxWidth: '420px', padding: '24px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>
-                Add Module
+                Add New Module
               </h3>
               {moduleError && <div style={{ color: 'var(--color-danger)', fontSize: '0.85rem', marginBottom: '12px' }}>{moduleError}</div>}
               <form onSubmit={handleCreateModuleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <Input label="Module Title" value={moduleTitle} onChange={(e) => setModuleTitle(e.target.value)} />
+                <Input label="Module Title" placeholder="e.g. Introduction to Environment Setup" value={moduleTitle} onChange={(e) => setModuleTitle(e.target.value)} />
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                   <Button type="button" variant="outline" onClick={() => setActiveModuleModal(false)}>Cancel</Button>
                   <Button type="submit" variant="primary" isLoading={isSubmittingModule}>Save Module</Button>
@@ -492,7 +586,7 @@ const CourseDetailPage = () => {
               </h3>
               {lessonError && <div style={{ color: 'var(--color-danger)', fontSize: '0.85rem', marginBottom: '12px' }}>{lessonError}</div>}
               <form onSubmit={handleCreateLessonSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <Input label="Lesson Title" value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} />
+                <Input label="Lesson Title" placeholder="e.g. VS Code Details" value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} />
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
