@@ -4,10 +4,11 @@ import Navbar from '../components/layout/Navbar';
 import PdfViewer from '../components/course/PdfViewer';
 import VideoPlayer from '../components/course/VideoPlayer';
 import ModuleQuizModal from '../components/course/ModuleQuizModal';
+import CertificateModal from '../components/course/CertificateModal';
 import AiTutorWidget from '../components/ai/AiTutorWidget';
 import { fetchCourseById, deleteCourse, addModule, addLesson, uploadLessonMedia } from '../api/courseApi';
 
-import { markLessonComplete, fetchDashboardStats } from '../api/progressApi';
+import { markLessonComplete, fetchDashboardStats, fetchCertificate } from '../api/progressApi';
 import { Card, Button, Input, LoadingSkeleton } from '../components/common';
 import { useAuth } from '../context/AuthContext';
 
@@ -50,6 +51,27 @@ const CourseDetailPage = () => {
 
   // Module Quiz Modal State
   const [activeModuleQuiz, setActiveModuleQuiz] = useState(null); // { moduleId, title }
+
+  // Certificate Modal State
+  const [certificateData, setCertificateData] = useState(null);
+  const [isFetchingCertificate, setIsFetchingCertificate] = useState(false);
+
+  const handleClaimCertificate = async () => {
+    setIsFetchingCertificate(true);
+    try {
+      const data = await fetchCertificate(id);
+      if (!data.eligible) {
+        alert(data.message || 'You must complete 100% of modules and pass quizzes with 100% accuracy to claim your certificate.');
+      } else {
+        setCertificateData(data);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to generate certificate');
+    } finally {
+      setIsFetchingCertificate(false);
+    }
+  };
+
 
   const loadData = async () => {
     setIsLoading(true);
@@ -362,8 +384,51 @@ const CourseDetailPage = () => {
               )}
             </div>
 
+
             {/* Right Column: Course Content / Curriculum Sidebar (~30% width) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Visual Progress Bar & Claim Certificate CTA */}
+
+              {(() => {
+                const progressPercent = totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0;
+                return (
+                  <Card style={{ padding: '16px 20px', backgroundColor: 'var(--bg-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                      <span>Course Completion Progress</span>
+                      <strong style={{ color: progressPercent === 100 ? 'var(--color-success)' : 'var(--accent-light)', fontWeight: 700 }}>
+                        {progressPercent}%
+                      </strong>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden', marginBottom: '14px' }}>
+                      <div style={{ width: `${progressPercent}%`, height: '100%', backgroundColor: progressPercent === 100 ? 'var(--color-success)' : 'var(--accent-primary)', transition: 'width 0.4s ease' }} />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleClaimCertificate}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: '#eab308',
+                        color: '#0f172a',
+                        border: 'none',
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 14px rgba(234, 179, 8, 0.3)',
+                      }}
+                    >
+                      <span>🎓</span> Claim Certificate of Completion
+                    </button>
+                  </Card>
+                );
+              })()}
+
               {/* Main Course Quiz Button */}
               <Button
                 variant="primary"
@@ -397,6 +462,7 @@ const CourseDetailPage = () => {
                     </Button>
                   )}
                 </div>
+
 
                 {/* Modules Accordion List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -687,12 +753,22 @@ const CourseDetailPage = () => {
           />
         )}
 
+        {/* Certificate Modal */}
+
+        {certificateData && (
+          <CertificateModal
+            certificateData={certificateData}
+            onClose={() => setCertificateData(null)}
+          />
+        )}
+
         {/* Floating AI Assistant Chatbox */}
         <AiTutorWidget courseTitle={course?.title} activeLesson={activeLesson} />
       </main>
     </div>
   );
 };
+
 
 
 
