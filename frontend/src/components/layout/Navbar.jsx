@@ -85,7 +85,20 @@ export const Navbar = ({ onCreateCourseClick }) => {
           >
             Dashboard
           </Link>
+          <Link
+            to="/playground"
+            style={{
+              textDecoration: 'none',
+              fontSize: '0.9rem',
+              fontWeight: location.pathname === '/playground' ? 700 : 500,
+              color: location.pathname === '/playground' ? 'var(--accent-light)' : 'var(--text-secondary)',
+              transition: 'color var(--transition-fast)',
+            }}
+          >
+            💻 Playground
+          </Link>
         </nav>
+
       </div>
 
       {/* User Actions & Profile */}

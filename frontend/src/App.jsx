@@ -7,6 +7,8 @@ import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import QuizPage from './pages/QuizPage';
 import DashboardPage from './pages/DashboardPage';
+import PlaygroundPage from './pages/PlaygroundPage';
+
 
 /**
  * Main application component — defines all application routes.
@@ -58,6 +60,16 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/playground"
+        element={
+          <ProtectedRoute>
+            <PlaygroundPage />
+          </ProtectedRoute>
+        }
+      />
+
 
       {/* Default redirect */}
       <Route path="*" element={<Navigate to="/courses" replace />} />
