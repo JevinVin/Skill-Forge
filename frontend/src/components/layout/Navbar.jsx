@@ -62,6 +62,18 @@ export const Navbar = ({ onCreateCourseClick }) => {
 
         <nav style={{ display: 'flex', gap: '16px' }}>
           <Link
+            to="/"
+            style={{
+              textDecoration: 'none',
+              fontSize: '0.9rem',
+              fontWeight: location.pathname === '/' ? 700 : 500,
+              color: location.pathname === '/' ? 'var(--accent-light)' : 'var(--text-secondary)',
+              transition: 'color var(--transition-fast)',
+            }}
+          >
+            About
+          </Link>
+          <Link
             to="/courses"
             style={{
               textDecoration: 'none',
@@ -73,6 +85,7 @@ export const Navbar = ({ onCreateCourseClick }) => {
           >
             Courses
           </Link>
+
           <Link
             to="/dashboard"
             style={{

@@ -8,21 +8,25 @@ import CourseDetailPage from './pages/CourseDetailPage';
 import QuizPage from './pages/QuizPage';
 import DashboardPage from './pages/DashboardPage';
 import PlaygroundPage from './pages/PlaygroundPage';
+import HomePage from './pages/HomePage';
 
-
-/**
- * Main application component — defines all application routes.
- *
- * Public routes: /login, /register
- * Protected routes: /courses, /courses/:id, /courses/:id/quiz, /dashboard
- * Default: redirects to /courses
- */
 function App() {
   return (
     <Routes>
       {/* Public auth routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <HomePage />
+          </ProtectedRoute>
+        }
+      />
+
 
       {/* Protected course & dashboard routes */}
       <Route
