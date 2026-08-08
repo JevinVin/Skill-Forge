@@ -3,14 +3,13 @@ import Navbar from '../components/layout/Navbar';
 import CodePlayground from '../components/playground/CodePlayground';
 
 /**
- * Dedicated Full-Screen Code Studio Page (VSCode / LeetCode style).
- * Features split code editor with draggable bottom console terminal.
+ * Dedicated Jet Black Code Studio Page.
  */
 const PlaygroundPage = () => {
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#090d16', color: '#f8fafc', overflow: 'hidden' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#000000', color: '#ffffff', overflow: 'hidden' }}>
       <Navbar />
-      <main style={{ flex: 1, width: '100%', overflow: 'hidden' }}>
+      <main style={{ flex: 1, width: '100%', overflow: 'hidden', backgroundColor: '#000000' }}>
         <CodePlayground fullScreen={true} />
       </main>
     </div>

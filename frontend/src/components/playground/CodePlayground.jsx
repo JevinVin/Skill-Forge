@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../common';
 
 /**
- * VSCode Dark Modern Theme Code Studio component.
- * Features full VSCode token syntax highlighting (keywords, functions, strings, types, control flow).
+ * Jet Black VSCode Dark Theme Code Studio component.
+ * Features jet black background (#000000), white output text (#ffffff), line numbers, and token syntax highlighting.
  */
 const TEMPLATES = {
   java: `// Java 17 Playground — Practice Java OOP & Algorithms!
@@ -48,8 +48,8 @@ print(f"Factorial of {number} is: {result}")
 <html>
 <head>
   <style>
-    body { font-family: sans-serif; background: #1e1e1e; color: #d4d4d4; padding: 30px; text-align: center; }
-    .card { background: #252526; padding: 30px; border-radius: 8px; border: 1px solid #3c3c3c; max-width: 500px; margin: 0 auto; }
+    body { font-family: sans-serif; background: #000000; color: #ffffff; padding: 30px; text-align: center; }
+    .card { background: #111111; padding: 30px; border-radius: 8px; border: 1px solid #222222; max-width: 500px; margin: 0 auto; }
     h1 { color: #569cd6; }
     button { background: #007acc; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     button:hover { background: #0062a3; }
@@ -57,7 +57,7 @@ print(f"Factorial of {number} is: {result}")
 </head>
 <body>
   <div class="card">
-    <h1>🚀 Skillforge VSCode Live Preview</h1>
+    <h1>🚀 Skillforge Jet Black Live Preview</h1>
     <p>Edit HTML & CSS code above to see live rendering below!</p>
     <button onclick="alert('Hello from Skillforge Java & Code Studio!')">Click Interactive Button</button>
   </div>
@@ -257,20 +257,20 @@ const CodePlayground = ({ fullScreen = true }) => {
         display: 'flex',
         flexDirection: 'column',
         height: fullScreen ? 'calc(100vh - 64px)' : '750px',
-        backgroundColor: '#1e1e1e',
-        color: '#d4d4d4',
+        backgroundColor: '#000000', // Jet Black
+        color: '#ffffff',
         borderRadius: fullScreen ? '0' : 'var(--radius-lg)',
         overflow: 'hidden',
-        border: fullScreen ? 'none' : '1px solid #3c3c3c',
+        border: fullScreen ? 'none' : '1px solid #1a1a1a',
         userSelect: isDragging ? 'none' : 'auto',
       }}
     >
-      {/* VSCode Dark Modern Header Bar (#181818) */}
+      {/* VSCode Header Bar (#0a0a0a) */}
       <div
         style={{
           padding: '10px 20px',
-          backgroundColor: '#181818',
-          borderBottom: '1px solid #2b2b2b',
+          backgroundColor: '#0a0a0a',
+          borderBottom: '1px solid #1f1f1f',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -282,7 +282,7 @@ const CodePlayground = ({ fullScreen = true }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.1rem' }}>💻</span>
             <strong style={{ fontSize: '0.95rem', color: '#ffffff', letterSpacing: '-0.3px' }}>
-              Skillforge VSCode Studio
+              Skillforge Jet Black Studio
             </strong>
           </div>
 
@@ -293,9 +293,9 @@ const CodePlayground = ({ fullScreen = true }) => {
             style={{
               padding: '6px 12px',
               borderRadius: '6px',
-              backgroundColor: '#252526',
+              backgroundColor: '#141414',
               color: '#569cd6',
-              border: '1px solid #3c3c3c',
+              border: '1px solid #2a2a2a',
               fontSize: '0.85rem',
               fontWeight: 700,
               cursor: 'pointer',
@@ -316,7 +316,7 @@ const CodePlayground = ({ fullScreen = true }) => {
             variant="outline"
             size="sm"
             onClick={() => handleLanguageChange(language)}
-            style={{ fontSize: '0.8rem', color: '#cccccc', borderColor: '#3c3c3c' }}
+            style={{ fontSize: '0.8rem', color: '#cccccc', borderColor: '#2a2a2a' }}
           >
             ↺ Reset Code
           </Button>
@@ -340,20 +340,20 @@ const CodePlayground = ({ fullScreen = true }) => {
         </div>
       </div>
 
-      {/* TOP SECTION: Code Editor with Line Numbers & Syntax Highlighting (#1e1e1e) */}
-      <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden', backgroundColor: '#1e1e1e' }}>
+      {/* TOP SECTION: Code Editor with Line Numbers & Jet Black Background (#000000) */}
+      <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden', backgroundColor: '#000000' }}>
         {/* Line Numbers Gutter */}
         <div
           style={{
             padding: '14px 10px',
-            backgroundColor: '#1e1e1e',
-            color: '#858585',
+            backgroundColor: '#000000',
+            color: '#666666',
             fontFamily: 'Consolas, "Courier New", monospace',
             fontSize: '0.9rem',
             lineHeight: 1.6,
             textAlign: 'right',
             userSelect: 'none',
-            borderRight: '1px solid #2b2b2b',
+            borderRight: '1px solid #1a1a1a',
             whiteSpace: 'pre',
           }}
         >
@@ -361,7 +361,7 @@ const CodePlayground = ({ fullScreen = true }) => {
         </div>
 
         {/* Editor Container with Overlay Syntax Highlighting */}
-        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden', backgroundColor: '#000000' }}>
           {/* Syntax Highlighted Render Layer */}
           <pre
             ref={preRef}
@@ -379,7 +379,7 @@ const CodePlayground = ({ fullScreen = true }) => {
               whiteSpace: 'pre',
               overflow: 'hidden',
               pointerEvents: 'none',
-              backgroundColor: 'transparent',
+              backgroundColor: '#000000',
             }}
           />
 
@@ -418,25 +418,25 @@ const CodePlayground = ({ fullScreen = true }) => {
         title="Drag up or down to resize output terminal"
         style={{
           height: '10px',
-          backgroundColor: isDragging ? '#007acc' : '#252526',
+          backgroundColor: isDragging ? '#007acc' : '#141414',
           cursor: 'ns-resize',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           transition: 'background-color 0.2s ease',
-          borderTop: '1px solid #2b2b2b',
-          borderBottom: '1px solid #2b2b2b',
+          borderTop: '1px solid #1f1f1f',
+          borderBottom: '1px solid #1f1f1f',
           zIndex: 10,
         }}
       >
-        <div style={{ width: '40px', height: '3px', backgroundColor: isDragging ? '#ffffff' : '#555555', borderRadius: '2px' }} />
+        <div style={{ width: '40px', height: '3px', backgroundColor: isDragging ? '#ffffff' : '#444444', borderRadius: '2px' }} />
       </div>
 
-      {/* BOTTOM SECTION: Output Terminal / Console */}
+      {/* BOTTOM SECTION: Jet Black Output Terminal / Console (#000000) */}
       <div
         style={{
           height: `${terminalHeight}px`,
-          backgroundColor: '#181818',
+          backgroundColor: '#000000',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -446,8 +446,8 @@ const CodePlayground = ({ fullScreen = true }) => {
         <div
           style={{
             padding: '6px 16px',
-            backgroundColor: '#252526',
-            borderBottom: '1px solid #2b2b2b',
+            backgroundColor: '#0a0a0a',
+            borderBottom: '1px solid #1f1f1f',
             display: 'flex',
             justify: 'space-between',
             alignItems: 'center',
@@ -456,9 +456,9 @@ const CodePlayground = ({ fullScreen = true }) => {
             fontWeight: 700,
           }}
         >
-          <span>{language === 'html' ? '🌐 LIVE WEB PREVIEW' : '🖥️ VSCODE TERMINAL OUTPUT'}</span>
+          <span>{language === 'html' ? '🌐 LIVE WEB PREVIEW' : '🖥️ JET BLACK TERMINAL OUTPUT'}</span>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.72rem', color: '#858585' }}>↕ Drag splitter to resize</span>
+            <span style={{ fontSize: '0.72rem', color: '#666666' }}>↕ Drag splitter to resize</span>
             <button
               type="button"
               onClick={() => setOutput('')}
@@ -470,7 +470,7 @@ const CodePlayground = ({ fullScreen = true }) => {
         </div>
 
         {/* Terminal Output Body */}
-        <div style={{ flex: 1, padding: '0', overflow: 'hidden' }}>
+        <div style={{ flex: 1, padding: '0', overflow: 'hidden', backgroundColor: '#000000' }}>
           {language === 'html' ? (
             <iframe
               srcDoc={output || TEMPLATES.html}
@@ -487,7 +487,7 @@ const CodePlayground = ({ fullScreen = true }) => {
               style={{
                 width: '100%',
                 height: '100%',
-                backgroundColor: '#181818',
+                backgroundColor: '#000000',
                 color: isError ? '#f14c4c' : '#ffffff',
                 fontFamily: 'Consolas, "Courier New", monospace',
                 fontSize: '0.88rem',
