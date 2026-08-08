@@ -3,7 +3,7 @@ import { Button } from '../common';
 
 /**
  * VSCode Dark Modern Theme Code Studio component.
- * Supports Java, JavaScript, Python 3, and HTML/CSS live rendering.
+ * Features full VSCode token syntax highlighting (keywords, functions, strings, types, control flow).
  */
 const TEMPLATES = {
   java: `// Java 17 Playground — Practice Java OOP & Algorithms!
@@ -30,7 +30,7 @@ console.log(greet("Developer"));
 
 const numbers = [10, 20, 30, 40, 50];
 const sum = numbers.reduce((acc, curr) => acc + curr, 0);
-console.log("Sum of numbers:", sum);
+console.log("Sum of numbers: " + sum);
 `,
 
   python: `# Python 3 Playground — Algorithms & Data Structures
@@ -77,6 +77,16 @@ const CodePlayground = ({ fullScreen = true }) => {
   const [terminalHeight, setTerminalHeight] = useState(240);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
+  const editorRef = useRef(null);
+  const preRef = useRef(null);
+
+  // Sync scroll between textarea and syntax highlight pre block
+  const handleScroll = (e) => {
+    if (preRef.current) {
+      preRef.current.scrollTop = e.target.scrollTop;
+      preRef.current.scrollLeft = e.target.scrollLeft;
+    }
+  };
 
   // Dragging logic for border resizing
   useEffect(() => {
@@ -198,6 +208,44 @@ const CodePlayground = ({ fullScreen = true }) => {
     }, 150);
   };
 
+  // VSCode Syntax Highlighting Parser
+  const getHighlightedCode = (rawCode) => {
+    if (!rawCode) return '';
+    let escaped = rawCode
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // 1. Comments (green #6a9955)
+    escaped = escaped.replace(/(\/\/.*$|\/\*[\s\S]*?\*\/|#.*$)/gm, '<span style="color: #6a9955; font-style: italic;">$1</span>');
+
+    // 2. Strings (orange #ce9178)
+    escaped = escaped.replace(/(["'`])((?:\\.|[^\\])*?)\1/g, '<span style="color: #ce9178;">$1$2$1</span>');
+
+    // 3. Control Flow Keywords (purple #c586c0)
+    const controlKeywords = ['return', 'if', 'else', 'for', 'while', 'switch', 'case', 'break', 'try', 'catch', 'throw'];
+    const controlRegex = new RegExp(`\\b(${controlKeywords.join('|')})\\b`, 'g');
+    escaped = escaped.replace(controlRegex, '<span style="color: #c586c0;">$1</span>');
+
+    // 4. Core Keywords (blue #569cd6)
+    const keywords = ['public', 'class', 'static', 'void', 'def', 'function', 'const', 'let', 'var', 'import', 'package', 'new', 'final', 'extends', 'implements'];
+    const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
+    escaped = escaped.replace(keywordRegex, '<span style="color: #569cd6;">$1</span>');
+
+    // 5. Types / Classes (teal #4ec9b0)
+    const types = ['String', 'System', 'Main', 'Integer', 'Boolean', 'Double', 'int', 'double', 'boolean', 'float', 'long', 'char', 'Math', 'Object'];
+    const typeRegex = new RegExp(`\\b(${types.join('|')})\\b`, 'g');
+    escaped = escaped.replace(typeRegex, '<span style="color: #4ec9b0;">$1</span>');
+
+    // 6. Functions / Methods (yellow #dcdcaa)
+    escaped = escaped.replace(/\b([a-zA-Z_]\w*)(?=\s*\()/g, '<span style="color: #dcdcaa;">$1</span>');
+
+    // 7. Numbers (light green #b5cea8)
+    escaped = escaped.replace(/\b(\d+)\b/g, '<span style="color: #b5cea8;">$1</span>');
+
+    return escaped;
+  };
+
   // Generate line numbers column
   const lineCount = code.split('\n').length;
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
@@ -209,15 +257,15 @@ const CodePlayground = ({ fullScreen = true }) => {
         display: 'flex',
         flexDirection: 'column',
         height: fullScreen ? 'calc(100vh - 64px)' : '750px',
-        backgroundColor: '#1e1e1e', // VSCode Dark Modern main background
-        color: '#d4d4d4', // VSCode default text
+        backgroundColor: '#1e1e1e',
+        color: '#d4d4d4',
         borderRadius: fullScreen ? '0' : 'var(--radius-lg)',
         overflow: 'hidden',
         border: fullScreen ? 'none' : '1px solid #3c3c3c',
         userSelect: isDragging ? 'none' : 'auto',
       }}
     >
-      {/* VSCode Dark Modern Header / Title Bar (#181818) */}
+      {/* VSCode Dark Modern Header Bar (#181818) */}
       <div
         style={{
           padding: '10px 20px',
@@ -246,7 +294,7 @@ const CodePlayground = ({ fullScreen = true }) => {
               padding: '6px 12px',
               borderRadius: '6px',
               backgroundColor: '#252526',
-              color: '#569cd6', // VSCode keyword blue
+              color: '#569cd6',
               border: '1px solid #3c3c3c',
               fontSize: '0.85rem',
               fontWeight: 700,
@@ -280,7 +328,7 @@ const CodePlayground = ({ fullScreen = true }) => {
             onClick={handleRunCode}
             isLoading={isRunning}
             style={{
-              backgroundColor: '#007acc', // VSCode accent blue
+              backgroundColor: '#007acc',
               borderColor: '#007acc',
               color: '#ffffff',
               fontWeight: 800,
@@ -292,14 +340,14 @@ const CodePlayground = ({ fullScreen = true }) => {
         </div>
       </div>
 
-      {/* TOP SECTION: Code Editor with Line Numbers (#1e1e1e) */}
+      {/* TOP SECTION: Code Editor with Line Numbers & Syntax Highlighting (#1e1e1e) */}
       <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden', backgroundColor: '#1e1e1e' }}>
         {/* Line Numbers Gutter */}
         <div
           style={{
             padding: '14px 10px',
             backgroundColor: '#1e1e1e',
-            color: '#858585', // VSCode line numbers gray
+            color: '#858585',
             fontFamily: 'Consolas, "Courier New", monospace',
             fontSize: '0.9rem',
             lineHeight: 1.6,
@@ -312,30 +360,59 @@ const CodePlayground = ({ fullScreen = true }) => {
           {lineNumbers}
         </div>
 
-        {/* Code Textarea Editor */}
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          spellCheck="false"
-          style={{
-            flex: 1,
-            height: '100%',
-            backgroundColor: 'transparent',
-            color: '#9cdcfe', // VSCode variable blue
-            fontFamily: 'Consolas, "Courier New", monospace',
-            fontSize: '0.9rem',
-            lineHeight: 1.6,
-            padding: '14px',
-            border: 'none',
-            outline: 'none',
-            resize: 'none',
-            whiteSpace: 'pre',
-            overflow: 'auto',
-          }}
-        />
+        {/* Editor Container with Overlay Syntax Highlighting */}
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          {/* Syntax Highlighted Render Layer */}
+          <pre
+            ref={preRef}
+            aria-hidden="true"
+            dangerouslySetInnerHTML={{ __html: getHighlightedCode(code) + '\n' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              margin: 0,
+              padding: '14px',
+              fontFamily: 'Consolas, "Courier New", monospace',
+              fontSize: '0.9rem',
+              lineHeight: 1.6,
+              color: '#9cdcfe',
+              whiteSpace: 'pre',
+              overflow: 'hidden',
+              pointerEvents: 'none',
+              backgroundColor: 'transparent',
+            }}
+          />
+
+          {/* Transparent Input Textarea */}
+          <textarea
+            ref={editorRef}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            onScroll={handleScroll}
+            spellCheck="false"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'transparent',
+              color: 'transparent',
+              caretColor: '#ffffff',
+              fontFamily: 'Consolas, "Courier New", monospace',
+              fontSize: '0.9rem',
+              lineHeight: 1.6,
+              padding: '14px',
+              border: 'none',
+              outline: 'none',
+              resize: 'none',
+              whiteSpace: 'pre',
+              overflow: 'auto',
+            }}
+          />
+        </div>
       </div>
 
-      {/* DRAGGABLE BORDER RESIZER (VSCode Dark Modern style) */}
+      {/* DRAGGABLE BORDER RESIZER */}
       <div
         onMouseDown={() => setIsDragging(true)}
         title="Drag up or down to resize output terminal"
@@ -355,7 +432,7 @@ const CodePlayground = ({ fullScreen = true }) => {
         <div style={{ width: '40px', height: '3px', backgroundColor: isDragging ? '#ffffff' : '#555555', borderRadius: '2px' }} />
       </div>
 
-      {/* BOTTOM SECTION: Output Terminal / Console (VSCode #181818) */}
+      {/* BOTTOM SECTION: Output Terminal / Console */}
       <div
         style={{
           height: `${terminalHeight}px`,
@@ -411,7 +488,7 @@ const CodePlayground = ({ fullScreen = true }) => {
                 width: '100%',
                 height: '100%',
                 backgroundColor: '#181818',
-                color: isError ? '#f14c4c' : '#4ec9b0', // VSCode error red / teal green
+                color: isError ? '#f14c4c' : '#4ec9b0',
                 fontFamily: 'Consolas, "Courier New", monospace',
                 fontSize: '0.88rem',
                 lineHeight: 1.5,
