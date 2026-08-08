@@ -511,12 +511,8 @@ const CourseDetailPage = () => {
                             <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                               Module {mIdx + 1}: {module.title}
                             </h3>
-                            {isCompleted && (
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-success)', backgroundColor: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '12px' }}>
-                                Done ✓
-                              </span>
-                            )}
                           </div>
+
 
                           {/* Module Quiz Action */}
                           <button
