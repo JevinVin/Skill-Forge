@@ -89,8 +89,8 @@ class ProgressServiceTest {
     }
 
     @Test
-    @DisplayName("markLessonComplete - deletes progress when lesson is already complete")
-    void markLessonComplete_DeletesProgress() {
+    @DisplayName("markLessonComplete - keeps progress permanent when lesson is already complete")
+    void markLessonComplete_KeepsProgressPermanent() {
         Progress existingProgress = Progress.builder().id(1L).user(student).course(course).lesson(lesson).build();
         when(userRepository.findByEmail("student@example.com")).thenReturn(Optional.of(student));
         when(courseRepository.findById(10L)).thenReturn(Optional.of(course));
@@ -99,8 +99,9 @@ class ProgressServiceTest {
 
         progressService.markLessonComplete(10L, 100L, "student@example.com");
 
-        verify(progressRepository, times(1)).delete(existingProgress);
+        verify(progressRepository, never()).delete(any(Progress.class));
     }
+
 
     @Test
     @DisplayName("getDashboardStats - computes metrics and badges for student")

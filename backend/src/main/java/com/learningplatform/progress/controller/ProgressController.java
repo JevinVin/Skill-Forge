@@ -1,5 +1,6 @@
 package com.learningplatform.progress.controller;
 
+import com.learningplatform.progress.dto.CourseProgressDetailResponse;
 import com.learningplatform.progress.dto.DashboardStatsResponse;
 import com.learningplatform.progress.service.ProgressService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,7 @@ import java.security.Principal;
 import java.util.Map;
 
 /**
- * REST controller for user dashboard metrics and lesson completion tracking.
+ * REST controller for user dashboard metrics, course progress tracking, and lesson completion.
  */
 @RestController
 @RequestMapping("/api")
@@ -29,7 +30,18 @@ public class ProgressController {
     }
 
     /**
-     * Toggles completion state for a given lesson in a course.
+     * Retrieves detailed course progress state for a specific course (completed lesson IDs,
+     * completed module quiz IDs, and weighted progress contribution).
+     */
+    @GetMapping("/courses/{courseId}/progress")
+    public ResponseEntity<CourseProgressDetailResponse> getCourseProgressDetails(
+            @PathVariable Long courseId,
+            Principal principal) {
+        return ResponseEntity.ok(progressService.getCourseProgressDetails(courseId, principal.getName()));
+    }
+
+    /**
+     * Marks a lesson as permanently completed for the authenticated caller.
      */
     @PostMapping("/courses/{courseId}/lessons/{lessonId}/complete")
     public ResponseEntity<Map<String, Object>> toggleLessonCompletion(
@@ -42,5 +54,4 @@ public class ProgressController {
                 "courseId", courseId
         ));
     }
-
 }

@@ -7,6 +7,7 @@ import com.learningplatform.course.model.CourseModule;
 import com.learningplatform.course.model.Lesson;
 import com.learningplatform.course.repository.CourseRepository;
 import com.learningplatform.course.repository.LessonRepository;
+import com.learningplatform.progress.dto.CourseProgressDetailResponse;
 import com.learningplatform.progress.dto.DashboardStatsResponse;
 import com.learningplatform.progress.dto.DashboardStatsResponse.BadgeDto;
 import com.learningplatform.progress.dto.DashboardStatsResponse.CourseProgressDto;
@@ -29,7 +30,7 @@ import java.util.Optional;
 
 /**
  * Service handling learning progress tracking, dashboard stats calculation,
- * and badge qualification rules.
+ * weighted quiz/lesson progress contributions, and permanent progress persistence.
  */
 @Service
 @RequiredArgsConstructor
@@ -44,7 +45,8 @@ public class ProgressService {
     private final QuizRepository quizRepository;
 
     /**
-     * Toggles or marks a lesson as completed for the authenticated user.
+     * Permanently marks a lesson as completed for the authenticated user.
+     * Progress is permanent — it cannot be undone or reverted once completed.
      */
     @Transactional
     public void markLessonComplete(Long courseId, Long lessonId, String userEmail) {
@@ -58,8 +60,7 @@ public class ProgressService {
         Optional<Progress> existing = progressRepository.findByUserIdAndLessonId(user.getId(), lessonId);
 
         if (existing.isPresent()) {
-            progressRepository.delete(existing.get());
-            log.info("Lesson {} marked incomplete by user {}", lessonId, userEmail);
+            log.info("Lesson {} already permanently completed by user {}", lessonId, userEmail);
         } else {
             Progress progress = Progress.builder()
                     .user(user)
@@ -67,8 +68,76 @@ public class ProgressService {
                     .lesson(lesson)
                     .build();
             progressRepository.save(progress);
-            log.info("Lesson {} marked complete by user {}", lessonId, userEmail);
+            log.info("Lesson {} permanently marked complete by user {}", lessonId, userEmail);
         }
+    }
+
+    /**
+     * Retrieves full course progress details including completed lesson IDs,
+     * completed module quiz IDs, and weighted progress contribution (lessons + quizzes).
+     */
+    @Transactional(readOnly = true)
+    public CourseProgressDetailResponse getCourseProgressDetails(Long courseId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userEmail));
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+
+        List<Progress> userProgresses = progressRepository.findByUserIdAndCourseId(user.getId(), courseId);
+        List<Long> completedLessonIds = userProgresses.stream()
+                .map(p -> p.getLesson().getId())
+                .distinct()
+                .toList();
+
+        List<Long> completedModuleIds = new ArrayList<>();
+        int totalQuizzesCount = 0;
+        int completedQuizzesCount = 0;
+
+        List<QuizSubmission> submissions = quizSubmissionRepository.findByStudentId(user.getId());
+
+        if (course.getModules() != null) {
+            for (CourseModule mod : course.getModules()) {
+                if (isModuleCompleted(mod.getId(), user.getId())) {
+                    completedModuleIds.add(mod.getId());
+                }
+
+                Optional<Quiz> modQuiz = quizRepository.findByModuleIdWithDetails(mod.getId());
+                if (modQuiz.isPresent()) {
+                    totalQuizzesCount++;
+                    boolean passed = submissions.stream()
+                            .filter(s -> s.getQuiz() != null && s.getQuiz().getId().equals(modQuiz.get().getId()))
+                            .anyMatch(s -> s.getPercentage() >= 100.0);
+                    if (passed) {
+                        completedQuizzesCount++;
+                    }
+                }
+            }
+        }
+
+        int totalLessonsCount = course.getModules() != null
+                ? course.getModules().stream().mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0).sum()
+                : 0;
+        int completedLessonsCount = completedLessonIds.size();
+
+        int totalItemsCount = totalLessonsCount + totalQuizzesCount;
+        int completedItemsCount = completedLessonsCount + completedQuizzesCount;
+
+        int overallPercentage = totalItemsCount > 0
+                ? (int) Math.round(((double) completedItemsCount / totalItemsCount) * 100.0)
+                : 0;
+
+        return CourseProgressDetailResponse.builder()
+                .courseId(courseId)
+                .completedLessonIds(completedLessonIds)
+                .completedModuleIds(completedModuleIds)
+                .totalLessonsCount(totalLessonsCount)
+                .completedLessonsCount(completedLessonsCount)
+                .totalQuizzesCount(totalQuizzesCount)
+                .completedQuizzesCount(completedQuizzesCount)
+                .totalItemsCount(totalItemsCount)
+                .completedItemsCount(completedItemsCount)
+                .overallProgressPercentage(overallPercentage)
+                .build();
     }
 
     /**
@@ -98,29 +167,27 @@ public class ProgressService {
 
             if (totalLessons == 0) continue;
 
-            long completedCount = userProgresses.stream()
+            long completedInCourse = userProgresses.stream()
                     .filter(p -> p.getCourse().getId().equals(course.getId()))
                     .count();
 
-            double percentage = ((double) completedCount / totalLessons) * 100.0;
-            boolean isCompleted = completedCount == totalLessons;
-            if (isCompleted) hasCompletedCourse = true;
+            double pct = ((double) completedInCourse / totalLessons) * 100.0;
+            if (pct >= 100.0) hasCompletedCourse = true;
 
             courseProgressList.add(CourseProgressDto.builder()
                     .courseId(course.getId())
                     .courseTitle(course.getTitle())
-                    .instructorName(course.getInstructor() != null ? course.getInstructor().getFullName() : "Instructor")
+                    .completedLessons((int) completedInCourse)
                     .totalLessons(totalLessons)
-                    .completedLessons((int) completedCount)
-                    .progressPercentage(Math.round(percentage * 10.0) / 10.0)
-                    .isCompleted(isCompleted)
+                    .progressPercentage(Math.round(pct * 10.0) / 10.0)
                     .build());
+
         }
 
-        // Badges
         List<BadgeDto> badges = new ArrayList<>();
+
         badges.add(BadgeDto.builder()
-                .code("FIRST_STEP")
+                .code("FIRST_STEPS")
                 .title("First Steps")
                 .description("Completed your first lesson")
                 .icon("🚀")
@@ -158,7 +225,6 @@ public class ProgressService {
                 .courseProgresses(courseProgressList)
                 .badges(badges)
                 .build();
-
     }
 
     /**
@@ -190,7 +256,7 @@ public class ProgressService {
         List<QuizSubmission> submissions = quizSubmissionRepository.findByStudentId(userId);
 
         boolean hasPerfectScore = submissions.stream()
-                .filter(s -> s.getQuiz().getId().equals(moduleQuiz.getId()))
+                .filter(s -> s.getQuiz() != null && s.getQuiz().getId().equals(moduleQuiz.getId()))
                 .anyMatch(s -> s.getPercentage() >= 100.0);
 
         return hasPerfectScore;

@@ -8,7 +8,8 @@ import CertificateModal from '../components/course/CertificateModal';
 import AiTutorWidget from '../components/ai/AiTutorWidget';
 import { fetchCourseById, deleteCourse, addModule, addLesson, uploadLessonMedia } from '../api/courseApi';
 
-import { markLessonComplete, fetchDashboardStats, fetchCertificate } from '../api/progressApi';
+import { markLessonComplete, fetchDashboardStats, fetchCertificate, fetchCourseProgressDetails } from '../api/progressApi';
+
 import { Card, Button, Input, LoadingSkeleton } from '../components/common';
 import { useAuth } from '../context/AuthContext';
 
@@ -73,6 +74,21 @@ const CourseDetailPage = () => {
   };
 
 
+  // Progress Detail State
+  const [progressDetail, setProgressDetail] = useState(null);
+
+  const handleAutoCompleteLesson = async (lessonId) => {
+    if (!lessonId || completedLessonIds.has(lessonId)) return;
+    try {
+      await markLessonComplete(id, lessonId);
+      setCompletedLessonIds((prev) => new Set([...prev, lessonId]));
+      const updatedProg = await fetchCourseProgressDetails(id);
+      setProgressDetail(updatedProg);
+    } catch (e) {
+      setCompletedLessonIds((prev) => new Set([...prev, lessonId]));
+    }
+  };
+
   const loadData = async () => {
     setIsLoading(true);
     setError('');
@@ -81,10 +97,16 @@ const CourseDetailPage = () => {
       setCourse(data);
 
       try {
-        const stats = await fetchDashboardStats();
-        // Load stats if available
+        const prog = await fetchCourseProgressDetails(id);
+        setProgressDetail(prog);
+        if (prog?.completedLessonIds) {
+          setCompletedLessonIds(new Set(prog.completedLessonIds));
+        }
+        if (prog?.completedModuleIds) {
+          setCompletedModuleIds(new Set(prog.completedModuleIds));
+        }
       } catch (e) {
-        // Ignore stats fetch error
+        // Ignore progress fetch error
       }
 
       if (data?.modules) {
@@ -94,7 +116,6 @@ const CourseDetailPage = () => {
         });
         setExpandedModules(initialExpanded);
 
-        // Select first lesson by default if available
         if (data.modules[0]?.lessons?.[0]) {
           setActiveLessonId(data.modules[0].lessons[0].id);
         }
@@ -114,49 +135,6 @@ const CourseDetailPage = () => {
     loadData();
   }, [id]);
 
-  const isOwner = Boolean(
-    user && (
-      user.role === 'INSTRUCTOR' ||
-      (user.id && course?.instructorId && user.id === course.instructorId) ||
-      (user.email && course?.instructorEmail && user.email.toLowerCase() === course.instructorEmail.toLowerCase())
-    )
-  );
-
-  const handleAutoCompleteLesson = async (lessonId) => {
-    if (!lessonId || completedLessonIds.has(lessonId)) return;
-    try {
-      await markLessonComplete(id, lessonId);
-      setCompletedLessonIds((prev) => new Set([...prev, lessonId]));
-    } catch (e) {
-      setCompletedLessonIds((prev) => new Set([...prev, lessonId]));
-    }
-  };
-
-  const toggleLessonComplete = async (lessonId) => {
-    try {
-      await markLessonComplete(id, lessonId);
-      setCompletedLessonIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(lessonId)) {
-          next.delete(lessonId);
-        } else {
-          next.add(lessonId);
-        }
-        return next;
-      });
-    } catch (err) {
-      setCompletedLessonIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(lessonId)) {
-          next.delete(lessonId);
-        } else {
-          next.add(lessonId);
-        }
-        return next;
-      });
-    }
-  };
-
   // Automatically mark ALL viewed lessons (PDF, Video, or Text) as completed
   useEffect(() => {
     if (activeLessonId) {
@@ -169,7 +147,17 @@ const CourseDetailPage = () => {
 
 
 
+
+  const isOwner = Boolean(
+    user && (
+      user.role === 'INSTRUCTOR' ||
+      (user.id && course?.instructorId && user.id === course.instructorId) ||
+      (user.email && course?.instructorEmail && user.email.toLowerCase() === course.instructorEmail.toLowerCase())
+    )
+  );
+
   const handleCreateModuleSubmit = async (e) => {
+
     e.preventDefault();
     setModuleError('');
     if (!moduleTitle.trim()) {
@@ -422,16 +410,21 @@ const CourseDetailPage = () => {
             {/* Right Column: Course Content / Curriculum Sidebar (~30% width) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Visual Progress Bar & Claim Certificate CTA */}
-
               {(() => {
-                const progressPercent = totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0;
+                const progressPercent = progressDetail ? progressDetail.overallProgressPercentage : (totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0);
+                const itemsDone = progressDetail ? progressDetail.completedItemsCount : completedLessonsCount;
+                const totalItems = progressDetail ? progressDetail.totalItemsCount : totalLessonsCount;
+
                 return (
                   <Card style={{ padding: '16px 20px', backgroundColor: 'var(--bg-secondary)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                       <span>Course Completion Progress</span>
                       <strong style={{ color: progressPercent === 100 ? 'var(--color-success)' : 'var(--accent-light)', fontWeight: 700 }}>
                         {progressPercent}%
                       </strong>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                      {itemsDone} of {totalItems} items finished (lessons + quizzes)
                     </div>
                     <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden', marginBottom: '14px' }}>
                       <div style={{ width: `${progressPercent}%`, height: '100%', backgroundColor: progressPercent === 100 ? 'var(--color-success)' : 'var(--accent-primary)', transition: 'width 0.4s ease' }} />
@@ -482,7 +475,7 @@ const CourseDetailPage = () => {
                       Course Content
                     </h2>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      {completedLessonsCount} / {totalLessonsCount} Completed
+                      {completedLessonsCount} / {totalLessonsCount} Lessons Completed
                     </span>
                   </div>
 
@@ -571,12 +564,8 @@ const CourseDetailPage = () => {
                                   transition: 'all var(--transition-fast)',
                                 }}
                               >
-                                  {/* LEFT-ALIGNED Radio Button Marker (Same style as Quiz Options) */}
+                                  {/* LEFT-ALIGNED Radio Indicator (Purely visual indicator — clicking does nothing) */}
                                   <div
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleLessonComplete(lesson.id);
-                                    }}
                                     style={{
                                       width: '14px',
                                       height: '14px',
@@ -586,7 +575,7 @@ const CourseDetailPage = () => {
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      cursor: 'pointer',
+                                      pointerEvents: 'none',
                                       flexShrink: 0,
                                     }}
                                   >
@@ -601,6 +590,7 @@ const CourseDetailPage = () => {
                                       />
                                     )}
                                   </div>
+
 
 
 
