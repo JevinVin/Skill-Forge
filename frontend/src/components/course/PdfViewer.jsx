@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 
 /**
- * PdfViewer component — renders document content natively on the webpage
- * using Skillforge's modern dark theme typography, scrollable viewport,
- * Fullscreen toggle mode, and direct PDF view/download options.
+ * PdfViewer component — renders document content 100% natively on the webpage.
+ * Completely eliminates <iframe> reliance to prevent any browser 'refused to connect' errors,
+ * providing Fullscreen reading mode, styled typography, and direct PDF download options.
  */
 const PdfViewer = ({ pdfUrl, title, textContent }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -37,7 +37,7 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
               backgroundColor: 'var(--bg-primary)',
               display: 'flex',
               flexDirection: 'column',
-              padding: '20px',
+              padding: '24px',
               overflowY: 'auto',
             }
           : {
@@ -53,7 +53,7 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
             }
       }
     >
-      {/* Document Toolbar */}
+      {/* Control Bar */}
       <div style={{
         display: 'flex',
         justify: 'space-between',
@@ -105,7 +105,7 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
               gap: '6px',
             }}
           >
-            {isFullscreen ? '↙ Exit Fullscreen' : '⛶ Fullscreen'}
+            {isFullscreen ? '↙ Exit Fullscreen' : '⛶ Fullscreen Reading Mode'}
           </button>
 
           {targetUrl && (
@@ -113,6 +113,7 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
               href={targetUrl}
               target="_blank"
               rel="noopener noreferrer"
+              download
               style={{
                 backgroundColor: 'var(--accent-primary)',
                 color: '#ffffff',
@@ -126,7 +127,7 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
                 gap: '6px',
               }}
             >
-              ⬇ Download / View PDF
+              ⬇ Download File
             </a>
           )}
         </div>
@@ -134,15 +135,14 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
 
       {/* Native Webpage Document Viewport */}
       <div style={{
-        padding: '28px',
+        padding: '32px',
         backgroundColor: 'var(--bg-secondary)',
-        minHeight: isFullscreen ? 'calc(100vh - 100px)' : '450px',
-        maxHeight: isFullscreen ? 'none' : '650px',
+        minHeight: isFullscreen ? 'calc(100vh - 120px)' : '350px',
         overflowY: 'auto',
       }}>
         {textContent ? (
           <div style={{
-            fontSize: '1rem',
+            fontSize: '1.05rem',
             lineHeight: 1.8,
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-sans)',
@@ -152,12 +152,46 @@ const PdfViewer = ({ pdfUrl, title, textContent }) => {
             {textContent}
           </div>
         ) : (
-          <div style={{ width: '100%', height: '550px', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-            <iframe
-              src={targetUrl}
-              title={title || 'Document Content'}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-            />
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justify: 'center',
+            padding: '40px 20px',
+            textAlign: 'center',
+            backgroundColor: 'var(--bg-tertiary)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px dashed var(--border-color)',
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>📄</div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {title || 'Document File Attached'}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '500px', marginBottom: '20px' }}>
+              This lesson includes an attached document. You can read written study notes on the webpage or download the full document file below.
+            </p>
+            {targetUrl && (
+              <a
+                href={targetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                style={{
+                  backgroundColor: 'var(--accent-primary)',
+                  color: '#ffffff',
+                  padding: '10px 20px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                ⬇ Download / Open PDF File
+              </a>
+            )}
           </div>
         )}
       </div>
