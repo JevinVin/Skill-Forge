@@ -6,6 +6,7 @@ import com.learningplatform.course.model.Course;
 import com.learningplatform.course.model.CourseModule;
 import com.learningplatform.course.repository.CourseRepository;
 import com.learningplatform.progress.dto.CertificateResponse;
+import com.learningplatform.progress.dto.CourseProgressDetailResponse;
 import com.learningplatform.progress.service.CertificateService;
 import com.learningplatform.progress.service.ProgressService;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,8 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,13 +49,18 @@ class CertificateServiceTest {
         course = Course.builder().id(50L).title("Full Stack Development").modules(List.of(module1)).build();
     }
 
-
     @Test
     @DisplayName("getCertificate - returns eligible certificate when 100% completed")
     void getCertificate_ReturnsEligibleCertificate_WhenCompleted() {
         when(userRepository.findByEmail("jevin@example.com")).thenReturn(Optional.of(student));
         when(courseRepository.findById(50L)).thenReturn(Optional.of(course));
-        when(progressService.isModuleCompleted(eq(100L), eq(10L))).thenReturn(true);
+        when(progressService.getCourseProgressDetails(50L, "jevin@example.com")).thenReturn(
+                CourseProgressDetailResponse.builder()
+                        .overallProgressPercentage(100)
+                        .completedItemsCount(5)
+                        .totalItemsCount(5)
+                        .build()
+        );
 
         CertificateResponse response = certificateService.getCertificate(50L, "jevin@example.com");
 
@@ -71,7 +75,13 @@ class CertificateServiceTest {
     void getCertificate_ReturnsLockedCertificate_WhenUnder100() {
         when(userRepository.findByEmail("jevin@example.com")).thenReturn(Optional.of(student));
         when(courseRepository.findById(50L)).thenReturn(Optional.of(course));
-        when(progressService.isModuleCompleted(eq(100L), eq(10L))).thenReturn(false);
+        when(progressService.getCourseProgressDetails(50L, "jevin@example.com")).thenReturn(
+                CourseProgressDetailResponse.builder()
+                        .overallProgressPercentage(80)
+                        .completedItemsCount(4)
+                        .totalItemsCount(5)
+                        .build()
+        );
 
         CertificateResponse response = certificateService.getCertificate(50L, "jevin@example.com");
 

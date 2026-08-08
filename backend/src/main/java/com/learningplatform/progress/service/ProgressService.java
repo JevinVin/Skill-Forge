@@ -114,6 +114,19 @@ public class ProgressService {
             }
         }
 
+        // Check main course final quiz if present
+        Optional<Quiz> courseQuizOpt = quizRepository.findByCourseIdWithDetails(courseId);
+        if (courseQuizOpt.isPresent()) {
+            totalQuizzesCount++;
+            boolean passedCourseQuiz = submissions.stream()
+                    .filter(s -> s.getQuiz() != null && s.getQuiz().getId().equals(courseQuizOpt.get().getId()))
+                    .anyMatch(s -> s.getPercentage() >= 100.0);
+            if (passedCourseQuiz) {
+                completedQuizzesCount++;
+            }
+        }
+
+
         int totalLessonsCount = course.getModules() != null
                 ? course.getModules().stream().mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0).sum()
                 : 0;

@@ -5,6 +5,7 @@ import com.learningplatform.auth.repository.UserRepository;
 import com.learningplatform.course.model.Course;
 import com.learningplatform.course.repository.CourseRepository;
 import com.learningplatform.progress.dto.CertificateResponse;
+import com.learningplatform.progress.dto.CourseProgressDetailResponse;
 import com.learningplatform.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,8 @@ import java.time.LocalDateTime;
 /**
  * Service for verifying 100% course completion and issuing official
  * Skillforge Certificates of Completion.
+ * Strict Rule: Certificate unlocks ONLY when all lessons are completed AND
+ * all quizzes (module & course quizzes) are passed with 100% accuracy.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,7 +31,7 @@ public class CertificateService {
 
     /**
      * Issues or verifies a Certificate of Completion for a student on a specific course.
-     * Enforces the 100% completion rule.
+     * Enforces strict 100% completion rule (all lessons + 100% accuracy on all quizzes).
      */
     @Transactional(readOnly = true)
     public CertificateResponse getCertificate(Long courseId, String userEmail) {
@@ -38,27 +41,19 @@ public class CertificateService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
 
-        int totalModules = course.getModules() != null ? course.getModules().size() : 0;
-        int completedModules = 0;
+        CourseProgressDetailResponse progressDetails = progressService.getCourseProgressDetails(courseId, userEmail);
 
-        if (totalModules > 0) {
-            for (var mod : course.getModules()) {
-                if (progressService.isModuleCompleted(mod.getId(), user.getId())) {
-                    completedModules++;
-                }
-            }
-        }
-
-        double percentage = totalModules > 0 ? ((double) completedModules / totalModules) * 100.0 : 100.0;
-        boolean eligible = percentage >= 100.0;
+        boolean eligible = progressDetails.getOverallProgressPercentage() >= 100
+                && progressDetails.getCompletedItemsCount() == progressDetails.getTotalItemsCount()
+                && progressDetails.getTotalItemsCount() > 0;
 
         if (!eligible) {
             return CertificateResponse.builder()
                     .eligible(false)
                     .courseTitle(course.getTitle())
                     .studentName(user.getFullName() != null ? user.getFullName() : user.getEmail())
-                    .completionPercentage(percentage)
-                    .message("Certificate locked. You must complete 100% of modules and pass quizzes with 100% accuracy to unlock your certificate.")
+                    .completionPercentage((double) progressDetails.getOverallProgressPercentage())
+                    .message("Certificate locked. You must complete 100% of lessons AND achieve 100% score on all quizzes to unlock your certificate.")
                     .build();
         }
 
@@ -67,7 +62,6 @@ public class CertificateService {
         String certId = "SF-CERT-" + certHash;
         String studentName = user.getFullName() != null ? user.getFullName() : user.getEmail();
         String instructorName = course.getInstructor() != null ? course.getInstructor().getFullName() : "Skillforge Instructor";
-
 
         log.info("Certificate issued for user '{}' on course '{}': {}", userEmail, course.getTitle(), certId);
 
