@@ -4,7 +4,9 @@ import Navbar from '../components/layout/Navbar';
 import PdfViewer from '../components/course/PdfViewer';
 import VideoPlayer from '../components/course/VideoPlayer';
 import ModuleQuizModal from '../components/course/ModuleQuizModal';
+import AiTutorWidget from '../components/ai/AiTutorWidget';
 import { fetchCourseById, deleteCourse, addModule, addLesson, uploadLessonMedia } from '../api/courseApi';
+
 import { markLessonComplete, fetchDashboardStats } from '../api/progressApi';
 import { Card, Button, Input, LoadingSkeleton } from '../components/common';
 import { useAuth } from '../context/AuthContext';
@@ -684,9 +686,14 @@ const CourseDetailPage = () => {
             }}
           />
         )}
+
+        {/* Floating AI Assistant Chatbox */}
+        <AiTutorWidget courseTitle={course?.title} activeLesson={activeLesson} />
       </main>
     </div>
   );
 };
+
+
 
 export default CourseDetailPage;

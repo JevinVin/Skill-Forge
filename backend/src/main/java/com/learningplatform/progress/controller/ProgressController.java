@@ -36,11 +36,11 @@ public class ProgressController {
             @PathVariable Long courseId,
             @PathVariable Long lessonId,
             Principal principal) {
-        boolean completed = progressService.toggleLessonCompletion(courseId, lessonId, principal.getName());
+        progressService.markLessonComplete(courseId, lessonId, principal.getName());
         return ResponseEntity.ok(Map.of(
                 "lessonId", lessonId,
-                "courseId", courseId,
-                "completed", completed
+                "courseId", courseId
         ));
     }
+
 }

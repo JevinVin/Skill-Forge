@@ -393,7 +393,7 @@ public class QuizService {
         int totalQuestions = quiz.getQuestions().size();
         int correctCount = 0;
 
-        List<QuizResultResponse.QuestionResultDto> results = new ArrayList<>();
+        List<QuestionResultResponse> results = new ArrayList<>();
 
         for (Question question : quiz.getQuestions()) {
             Long selectedOptionId = answers.get(question.getId());
@@ -411,7 +411,7 @@ public class QuizService {
             boolean isCorrect = selectedOption != null && correctOption != null && selectedOption.getId().equals(correctOption.getId());
             if (isCorrect) correctCount++;
 
-            results.add(QuizResultResponse.QuestionResultDto.builder()
+            results.add(QuestionResultResponse.builder()
                     .questionId(question.getId())
                     .questionText(question.getText())
                     .selectedOptionId(selectedOptionId)
@@ -421,6 +421,7 @@ public class QuizService {
                     .correct(isCorrect)
                     .build());
         }
+
 
         double percentage = totalQuestions > 0 ? ((double) correctCount / totalQuestions) * 100.0 : 0.0;
 

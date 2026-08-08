@@ -66,6 +66,10 @@ public class SecurityConfig {
                         // Public endpoints — no token required
                         .requestMatchers("/api/auth/**", "/api/health", "/uploads/**").permitAll()
 
+                        // AI Assistant Chatbox — any authenticated user
+                        .requestMatchers("/api/ai/**").authenticated()
+
+
 
                         // Course reads — any authenticated user (STUDENT or INSTRUCTOR)
                         .requestMatchers(HttpMethod.GET, "/api/courses/**").authenticated()
