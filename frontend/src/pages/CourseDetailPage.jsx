@@ -568,30 +568,37 @@ const CourseDetailPage = () => {
                                   transition: 'all var(--transition-fast)',
                                 }}
                               >
-                                  {/* LEFT-ALIGNED Radio-Style Completion Checkmark */}
+                                  {/* LEFT-ALIGNED Radio Button Marker (Same style as Quiz Options) */}
                                   <div
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleLessonComplete(lesson.id);
                                     }}
                                     style={{
-                                      width: '16px',
-                                      height: '16px',
+                                      width: '14px',
+                                      height: '14px',
                                       borderRadius: '50%',
-                                      border: isDone ? 'none' : '2px solid var(--text-muted)',
-                                      backgroundColor: isDone ? 'var(--accent-primary)' : 'transparent',
+                                      border: isDone ? '2px solid var(--accent-primary)' : '2px solid var(--text-muted)',
+                                      backgroundColor: 'transparent',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      color: '#ffffff',
-                                      fontSize: '0.65rem',
-                                      fontWeight: 800,
                                       cursor: 'pointer',
                                       flexShrink: 0,
                                     }}
                                   >
-                                    {isDone && '✓'}
+                                    {isDone && (
+                                      <div
+                                        style={{
+                                          width: '6px',
+                                          height: '6px',
+                                          borderRadius: '50%',
+                                          backgroundColor: 'var(--accent-primary)',
+                                        }}
+                                      />
+                                    )}
                                   </div>
+
 
 
                                 {/* Lesson Title & Type Icon */}
