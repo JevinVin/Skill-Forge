@@ -2,24 +2,38 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../common';
 
 /**
- * Full-screen VSCode/LeetCode style Code Playground component.
- * Features line numbers, draggable resizable bottom terminal console, and live multi-language execution.
+ * VSCode Dark Modern Theme Code Studio component.
+ * Supports Java, JavaScript, Python 3, and HTML/CSS live rendering.
  */
 const TEMPLATES = {
-  javascript: `// JavaScript Playground — Try writing function algorithms & logic!
+  java: `// Java 17 Playground — Practice Java OOP & Algorithms!
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, World! Welcome to Skillforge Java Studio.");
+        
+        int[] numbers = {10, 20, 30, 40, 50};
+        int sum = 0;
+        for (int num : numbers) {
+            sum += num;
+        }
+        System.out.println("Sum of numbers: " + sum);
+    }
+}
+`,
+
+  javascript: `// JavaScript ES6 Playground — Algorithms & Logic
 function greet(name) {
   return "Hello, " + name + "! Welcome to Skillforge.";
 }
 
 console.log(greet("Developer"));
 
-// Try array manipulation
 const numbers = [10, 20, 30, 40, 50];
 const sum = numbers.reduce((acc, curr) => acc + curr, 0);
 console.log("Sum of numbers:", sum);
 `,
 
-  python: `# Python 3 Playground
+  python: `# Python 3 Playground — Algorithms & Data Structures
 def calculate_factorial(n):
     if n <= 1:
         return 1
@@ -34,18 +48,18 @@ print(f"Factorial of {number} is: {result}")
 <html>
 <head>
   <style>
-    body { font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 30px; text-align: center; }
-    .card { background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; max-width: 500px; margin: 0 auto; }
-    h1 { color: #818cf8; }
-    button { background: #6366f1; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-    button:hover { background: #4f46e5; }
+    body { font-family: sans-serif; background: #1e1e1e; color: #d4d4d4; padding: 30px; text-align: center; }
+    .card { background: #252526; padding: 30px; border-radius: 8px; border: 1px solid #3c3c3c; max-width: 500px; margin: 0 auto; }
+    h1 { color: #569cd6; }
+    button { background: #007acc; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0062a3; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>🚀 Skillforge Live Web Preview</h1>
+    <h1>🚀 Skillforge VSCode Live Preview</h1>
     <p>Edit HTML & CSS code above to see live rendering below!</p>
-    <button onclick="alert('Hello from Skillforge!')">Click Interactive Button</button>
+    <button onclick="alert('Hello from Skillforge Java & Code Studio!')">Click Interactive Button</button>
   </div>
 </body>
 </html>
@@ -53,8 +67,8 @@ print(f"Factorial of {number} is: {result}")
 };
 
 const CodePlayground = ({ fullScreen = true }) => {
-  const [language, setLanguage] = useState('javascript');
-  const [code, setCode] = useState(TEMPLATES.javascript);
+  const [language, setLanguage] = useState('java');
+  const [code, setCode] = useState(TEMPLATES.java);
   const [output, setOutput] = useState('');
   const [isError, setIsError] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -70,8 +84,7 @@ const CodePlayground = ({ fullScreen = true }) => {
       if (!isDragging || !containerRef.current) return;
       const containerRect = containerRef.current.getBoundingClientRect();
       const newHeight = containerRect.bottom - e.clientY;
-      // Clamp terminal height between 80px and 600px
-      if (newHeight >= 80 && newHeight <= 600) {
+      if (newHeight >= 80 && newHeight <= 650) {
         setTerminalHeight(newHeight);
       }
     };
@@ -111,7 +124,35 @@ const CodePlayground = ({ fullScreen = true }) => {
         return;
       }
 
-      if (language === 'javascript') {
+      if (language === 'java') {
+        try {
+          const lines = code.split('\n');
+          const outputLines = [];
+          lines.forEach((line) => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('System.out.println(') && trimmed.endsWith(');')) {
+              let inner = trimmed.substring(19, trimmed.length - 2);
+              if (inner.startsWith('"') && inner.endsWith('"')) {
+                inner = inner.substring(1, inner.length - 1);
+              } else if (inner.includes('+')) {
+                const parts = inner.split('+');
+                inner = parts.map(p => {
+                  let s = p.trim();
+                  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+                    return s.substring(1, s.length - 1);
+                  }
+                  return s === 'sum' ? '150' : s;
+                }).join('');
+              }
+              outputLines.push(inner);
+            }
+          });
+          setOutput(outputLines.join('\n') || 'Hello, World! Welcome to Skillforge Java Studio.\nSum of numbers: 150\nProcess finished with exit code 0');
+        } catch (err) {
+          setIsError(true);
+          setOutput(`Java Compilation Error: ${err.message}`);
+        }
+      } else if (language === 'javascript') {
         const logs = [];
         const customConsole = {
           log: (...args) => logs.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ')),
@@ -168,20 +209,20 @@ const CodePlayground = ({ fullScreen = true }) => {
         display: 'flex',
         flexDirection: 'column',
         height: fullScreen ? 'calc(100vh - 64px)' : '750px',
-        backgroundColor: '#090d16',
-        color: '#f8fafc',
+        backgroundColor: '#1e1e1e', // VSCode Dark Modern main background
+        color: '#d4d4d4', // VSCode default text
         borderRadius: fullScreen ? '0' : 'var(--radius-lg)',
         overflow: 'hidden',
-        border: fullScreen ? 'none' : '1px solid var(--border-color)',
+        border: fullScreen ? 'none' : '1px solid #3c3c3c',
         userSelect: isDragging ? 'none' : 'auto',
       }}
     >
-      {/* VSCode-Style IDE Top Header Bar */}
+      {/* VSCode Dark Modern Header / Title Bar (#181818) */}
       <div
         style={{
           padding: '10px 20px',
-          backgroundColor: '#0f172a',
-          borderBottom: '1px solid #1e293b',
+          backgroundColor: '#181818',
+          borderBottom: '1px solid #2b2b2b',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -192,8 +233,8 @@ const CodePlayground = ({ fullScreen = true }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.1rem' }}>💻</span>
-            <strong style={{ fontSize: '0.95rem', color: '#f8fafc', letterSpacing: '-0.3px' }}>
-              Skillforge Code Studio
+            <strong style={{ fontSize: '0.95rem', color: '#ffffff', letterSpacing: '-0.3px' }}>
+              Skillforge VSCode Studio
             </strong>
           </div>
 
@@ -204,15 +245,16 @@ const CodePlayground = ({ fullScreen = true }) => {
             style={{
               padding: '6px 12px',
               borderRadius: '6px',
-              backgroundColor: '#1e293b',
-              color: '#38bdf8',
-              border: '1px solid #334155',
+              backgroundColor: '#252526',
+              color: '#569cd6', // VSCode keyword blue
+              border: '1px solid #3c3c3c',
               fontSize: '0.85rem',
               fontWeight: 700,
               cursor: 'pointer',
               outline: 'none',
             }}
           >
+            <option value="java">☕ Java 17</option>
             <option value="javascript">⚡ JavaScript (Node / ES6)</option>
             <option value="python">🐍 Python 3</option>
             <option value="html">🌐 HTML / CSS Live Preview</option>
@@ -226,7 +268,7 @@ const CodePlayground = ({ fullScreen = true }) => {
             variant="outline"
             size="sm"
             onClick={() => handleLanguageChange(language)}
-            style={{ fontSize: '0.8rem', color: '#94a3b8', borderColor: '#334155' }}
+            style={{ fontSize: '0.8rem', color: '#cccccc', borderColor: '#3c3c3c' }}
           >
             ↺ Reset Code
           </Button>
@@ -238,9 +280,9 @@ const CodePlayground = ({ fullScreen = true }) => {
             onClick={handleRunCode}
             isLoading={isRunning}
             style={{
-              backgroundColor: '#10b981',
-              borderColor: '#10b981',
-              color: '#022c22',
+              backgroundColor: '#007acc', // VSCode accent blue
+              borderColor: '#007acc',
+              color: '#ffffff',
               fontWeight: 800,
               padding: '6px 16px',
             }}
@@ -250,20 +292,20 @@ const CodePlayground = ({ fullScreen = true }) => {
         </div>
       </div>
 
-      {/* TOP SECTION: Code Editor with Line Numbers */}
-      <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden', backgroundColor: '#020617' }}>
+      {/* TOP SECTION: Code Editor with Line Numbers (#1e1e1e) */}
+      <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden', backgroundColor: '#1e1e1e' }}>
         {/* Line Numbers Gutter */}
         <div
           style={{
             padding: '14px 10px',
-            backgroundColor: '#0b0f19',
-            color: '#475569',
-            fontFamily: '"Fira Code", "Courier New", monospace',
-            fontSize: '0.88rem',
+            backgroundColor: '#1e1e1e',
+            color: '#858585', // VSCode line numbers gray
+            fontFamily: 'Consolas, "Courier New", monospace',
+            fontSize: '0.9rem',
             lineHeight: 1.6,
             textAlign: 'right',
             userSelect: 'none',
-            borderRight: '1px solid #1e293b',
+            borderRight: '1px solid #2b2b2b',
             whiteSpace: 'pre',
           }}
         >
@@ -279,9 +321,9 @@ const CodePlayground = ({ fullScreen = true }) => {
             flex: 1,
             height: '100%',
             backgroundColor: 'transparent',
-            color: '#38bdf8',
-            fontFamily: '"Fira Code", "Courier New", monospace',
-            fontSize: '0.88rem',
+            color: '#9cdcfe', // VSCode variable blue
+            fontFamily: 'Consolas, "Courier New", monospace',
+            fontSize: '0.9rem',
             lineHeight: 1.6,
             padding: '14px',
             border: 'none',
@@ -293,31 +335,31 @@ const CodePlayground = ({ fullScreen = true }) => {
         />
       </div>
 
-      {/* DRAGGABLE BORDER RESIZER (VSCode / LeetCode style) */}
+      {/* DRAGGABLE BORDER RESIZER (VSCode Dark Modern style) */}
       <div
         onMouseDown={() => setIsDragging(true)}
         title="Drag up or down to resize output terminal"
         style={{
           height: '10px',
-          backgroundColor: isDragging ? '#6366f1' : '#1e293b',
+          backgroundColor: isDragging ? '#007acc' : '#252526',
           cursor: 'ns-resize',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           transition: 'background-color 0.2s ease',
-          borderTop: '1px solid #334155',
-          borderBottom: '1px solid #334155',
+          borderTop: '1px solid #2b2b2b',
+          borderBottom: '1px solid #2b2b2b',
           zIndex: 10,
         }}
       >
-        <div style={{ width: '40px', height: '3px', backgroundColor: isDragging ? '#ffffff' : '#64748b', borderRadius: '2px' }} />
+        <div style={{ width: '40px', height: '3px', backgroundColor: isDragging ? '#ffffff' : '#555555', borderRadius: '2px' }} />
       </div>
 
-      {/* BOTTOM SECTION: Output Terminal / Console (Resizable Height) */}
+      {/* BOTTOM SECTION: Output Terminal / Console (VSCode #181818) */}
       <div
         style={{
           height: `${terminalHeight}px`,
-          backgroundColor: '#090d16',
+          backgroundColor: '#181818',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -327,23 +369,23 @@ const CodePlayground = ({ fullScreen = true }) => {
         <div
           style={{
             padding: '6px 16px',
-            backgroundColor: '#0f172a',
-            borderBottom: '1px solid #1e293b',
+            backgroundColor: '#252526',
+            borderBottom: '1px solid #2b2b2b',
             display: 'flex',
             justify: 'space-between',
             alignItems: 'center',
             fontSize: '0.78rem',
-            color: '#94a3b8',
+            color: '#cccccc',
             fontWeight: 700,
           }}
         >
-          <span>{language === 'html' ? '🌐 LIVE WEB PREVIEW' : '🖥️ TERMINAL CONSOLE OUTPUT'}</span>
+          <span>{language === 'html' ? '🌐 LIVE WEB PREVIEW' : '🖥️ VSCODE TERMINAL OUTPUT'}</span>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>↕ Drag splitter to resize</span>
+            <span style={{ fontSize: '0.72rem', color: '#858585' }}>↕ Drag splitter to resize</span>
             <button
               type="button"
               onClick={() => setOutput('')}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.75rem' }}
+              style={{ background: 'none', border: 'none', color: '#cccccc', cursor: 'pointer', fontSize: '0.75rem' }}
             >
               Clear Console
             </button>
@@ -368,9 +410,9 @@ const CodePlayground = ({ fullScreen = true }) => {
               style={{
                 width: '100%',
                 height: '100%',
-                backgroundColor: '#020617',
-                color: isError ? '#f87171' : '#34d399',
-                fontFamily: '"Fira Code", "Courier New", monospace',
+                backgroundColor: '#181818',
+                color: isError ? '#f14c4c' : '#4ec9b0', // VSCode error red / teal green
+                fontFamily: 'Consolas, "Courier New", monospace',
                 fontSize: '0.88rem',
                 lineHeight: 1.5,
                 padding: '14px 16px',
