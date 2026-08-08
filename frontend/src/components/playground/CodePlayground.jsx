@@ -488,7 +488,7 @@ const CodePlayground = ({ fullScreen = true }) => {
                 width: '100%',
                 height: '100%',
                 backgroundColor: '#181818',
-                color: isError ? '#f14c4c' : '#4ec9b0',
+                color: isError ? '#f14c4c' : '#ffffff',
                 fontFamily: 'Consolas, "Courier New", monospace',
                 fontSize: '0.88rem',
                 lineHeight: 1.5,
