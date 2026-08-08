@@ -270,15 +270,17 @@ const CourseDetailPage = () => {
                         <PdfViewer
                           pdfUrl={activeLesson.mediaUrl}
                           title={activeLesson.title}
+                          textContent={activeLesson.content}
                         />
                       </div>
                     )}
 
-                    {activeLesson.content && (
+                    {activeLesson.lessonType === 'TEXT' && activeLesson.content && (
                       <div style={{ padding: '24px 28px', color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
                         {activeLesson.content}
                       </div>
                     )}
+
                   </div>
                 )}
               </Card>

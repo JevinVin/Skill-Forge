@@ -7,6 +7,8 @@ import com.learningplatform.course.repository.LessonRepository;
 import com.learningplatform.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -21,6 +23,8 @@ import java.util.UUID;
 
 /**
  * Service for handling local PDF and Video file uploads attached to lessons.
+ * Automatically extracts document text from PDF files using PDFBox so document
+ * content is rendered directly on the webpage.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,7 @@ public class LessonMediaService {
 
     /**
      * Stores an uploaded PDF or Video file and updates the lesson's mediaUrl and lessonType.
+     * Automatically extracts text from uploaded PDF files so content renders natively on the web page.
      */
     @Transactional
     public LessonResponse uploadLessonMedia(Long lessonId, MultipartFile file, String mediaType) throws IOException {
@@ -67,6 +72,16 @@ public class LessonMediaService {
 
         if ("PDF".equalsIgnoreCase(mediaType) || fileExt.equalsIgnoreCase(".pdf")) {
             lesson.setLessonType(LessonType.PDF);
+            try (PDDocument document = PDDocument.load(filePath.toFile())) {
+                PDFTextStripper stripper = new PDFTextStripper();
+                String extractedText = stripper.getText(document);
+                if (extractedText != null && !extractedText.trim().isEmpty()) {
+                    lesson.setContent(extractedText.trim());
+                    log.info("Extracted {} characters of text from PDF for lesson id {}", extractedText.length(), lessonId);
+                }
+            } catch (Exception pdfEx) {
+                log.warn("Could not extract text from PDF file: {}", pdfEx.getMessage());
+            }
         } else if ("VIDEO".equalsIgnoreCase(mediaType) || isVideoExtension(fileExt)) {
             lesson.setLessonType(LessonType.VIDEO);
             lesson.setVideoType("LOCAL");
